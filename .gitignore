@@ -1,0 +1,52 @@
+# =============================================================
+#  FoodNest – Git Ignore
+# =============================================================
+
+# ── Logs ──────────────────────────────────────────────────────
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ── Dependencies ───────────────────────────────────────────────
+node_modules
+frontend/node_modules
+backend/node_modules
+
+# ── Build outputs ──────────────────────────────────────────────
+dist
+dist-ssr
+frontend/.output
+frontend/.vinxi
+frontend/.nitro
+frontend/.tanstack/**
+frontend/.wrangler/
+*.local
+
+# ── Environment Secrets (NEVER commit) ────────────────────────
+.env
+.env.*
+.env.local
+frontend/.env
+frontend/.env.*
+backend/.env
+backend/.env.*
+
+# ── Platform-specific configs ──────────────────────────────────
+.lovable/
+.lovable
+.dev.vars
+
+# ── Editor directories and files ──────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
