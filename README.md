@@ -1,33 +1,33 @@
-# 🥑 FoodNest – Smart Food Sustainability & Donation Platform
+# FoodNest – Smart Food Sustainability & Donation Platform
 
 FoodNest (originally known as the *Food Karma Collective*) is a modern, full-stack application built to reduce food waste, simplify household grocery tracking, and enable community-driven food sharing. By connecting neighbors and local food pantries, FoodNest fosters a collaborative ecosystem for zero-waste living.
 
 ---
 
-## 🌟 Key Features
+##  Key Features
 
-### 🥕 Smart Inventory Management
+###  Smart Inventory Management
 - **Pantry Logging:** Effortlessly track your household groceries, categories, and storage locations.
 - **Expiration Alerts:** Dynamic warnings notify you when food items are approaching their expiration dates.
 - **Visual Emojis:** Auto-assigned emojis for each food item make scanning your inventory intuitive.
 
-### 🤝 Food Karma Collective (Donations)
+###  Food Karma Collective (Donations)
 - **Local Sharing:** Easily post excess edible food items for neighbors or local shelters.
 - **Interactive Proximity Mapping:** Simulated proximity calculation displays how close donations are (in km).
 - **History & Claims:** Track the items you've claimed or donated to build community trust.
 - **Fanned-out Meat Donations:** Special automated distribution rule for high-value perishable items.
 
-### 📅 Weekly Meal Planner
+###  Weekly Meal Planner
 - **Intelligent Planning:** Construct your weekly eating schedule around ingredients in your pantry that are expiring soon.
 - **Slot Management:** Calendar integration for Breakfast, Lunch, and Dinner.
 
-### 📊 Waste & Savings Analytics
+###  Waste & Savings Analytics
 - **Personal Insights:** Track your monthly money saved and the weight (in kg) of food saved from landfills.
 - **Sustainability Badges:** Reward systems for hitting zero-waste milestones.
 
 ---
 
-## 💻 Technology Stack
+##  Technology Stack
 
 - **Frontend:** React (v19) + Vite + TanStack Start (file-based routing) + Tailwind CSS + Lucide Icons + Framer Motion.
 - **Backend:** Node.js + Express + JWT Authentication + Google OAuth.
@@ -36,7 +36,7 @@ FoodNest (originally known as the *Food Karma Collective*) is a modern, full-sta
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 
 ```text
 foodnest/
@@ -64,17 +64,17 @@ foodnest/
 
 ---
 
-## 🚀 Setup & Installation Guide
+##  Setup & Installation Guide
 
 Follow these steps to set up and run the application locally on your machine.
 
-### 📋 Prerequisites
+###  Prerequisites
 - **Node.js** (v18 or higher recommended)
 - **MySQL Server** (running locally or in the cloud)
 
 ---
 
-### 1. Database Configuration 🗄️
+### 1. Database Configuration 
 
 1. Log into your MySQL console:
    ```bash
@@ -123,7 +123,7 @@ Follow these steps to set up and run the application locally on your machine.
 
 ---
 
-### 3. Frontend Setup 💻
+### 3. Frontend Setup 
 
 1. Navigate to the `frontend` directory:
    ```bash
@@ -141,7 +141,7 @@ Follow these steps to set up and run the application locally on your machine.
 
 ---
 
-## 🧪 Testing the Project
+##  Testing the Project
 
 The application comes with unit, integration, and E2E test suites.
 
