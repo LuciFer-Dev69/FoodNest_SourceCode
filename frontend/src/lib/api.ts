@@ -4,17 +4,24 @@ export async function apiFetch<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  
+
   const headers = new Headers(options.headers || {});
   headers.set("Content-Type", "application/json");
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(endpoint, {
+  // Force all API calls to go through the Vite dev proxy on the same origin (port 8080)
+  // If the caller accidentally passes an absolute backend URL, strip it.
+  const normalizedEndpoint = endpoint
+    .replace(/^https?:\/\/[^/]+/i, "")
+    .replace(/^\/api\//i, "/api/");
+
+  const response = await fetch(normalizedEndpoint, {
     ...options,
     headers,
   });
+
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));

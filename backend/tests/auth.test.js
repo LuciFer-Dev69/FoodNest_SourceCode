@@ -1,6 +1,8 @@
 import request from "supertest";
-import server from "../server.js";
+import app from "../server.js";
+
 import { db } from "../config/db.js";
+
 
 describe("Authentication API Endpoints", () => {
   const testUser = {
@@ -12,14 +14,18 @@ describe("Authentication API Endpoints", () => {
   afterAll(async () => {
     // Clean up test user from DB
     await db.execute("DELETE FROM users WHERE email = ?", [testUser.email]);
+
     if (typeof db.end === "function") {
       await db.end();
     }
-    server.close();
+
+    // Nothing to close here: we are using the Express app directly (no listen in tests)
   });
 
+
   it("should register a new user successfully", async () => {
-    const res = await request(server)
+    const res = await request(app)
+
       .post("/api/auth/register")
       .send(testUser);
 
@@ -29,7 +35,7 @@ describe("Authentication API Endpoints", () => {
   });
 
   it("should fail to register user with same email", async () => {
-    const res = await request(server)
+    const res = await request(app)
       .post("/api/auth/register")
       .send(testUser);
 
@@ -38,7 +44,8 @@ describe("Authentication API Endpoints", () => {
   });
 
   it("should login user and return a JWT token", async () => {
-    const res = await request(server)
+    const res = await request(app)
+
       .post("/api/auth/login")
       .send({
         email: testUser.email,
@@ -51,7 +58,8 @@ describe("Authentication API Endpoints", () => {
   });
 
   it("should reject incorrect password on login", async () => {
-    const res = await request(server)
+    const res = await request(app)
+
       .post("/api/auth/login")
       .send({
         email: testUser.email,

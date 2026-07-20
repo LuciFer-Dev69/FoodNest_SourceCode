@@ -5,6 +5,7 @@ describe("FoodNest E2E Test Suite via Selenium", () => {
   let driver;
 
   beforeAll(async () => {
+  
     const options = new chrome.Options();
     options.addArguments("--headless");
     options.addArguments("--no-sandbox");
@@ -17,16 +18,25 @@ describe("FoodNest E2E Test Suite via Selenium", () => {
         .setChromeOptions(options)
         .build();
       
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Timeout building Selenium driver (4s limit)")), 4000)
-      );
+      let timeoutId;
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new Error("Timeout building Selenium driver (4s limit)")),
+          4000
+        );
+      });
 
-      driver = await Promise.race([buildPromise, timeoutPromise]);
+      try {
+        driver = await Promise.race([buildPromise, timeoutPromise]);
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId);
+      }
     } catch (err) {
-      console.warn("⚠️ Selenium E2E tests require Google Chrome and ChromeDriver installed on your system.");
+      console.warn("Selenium E2E tests require Google Chrome and ChromeDriver installed on your system.");
+
       console.warn("Details:", err.message);
     }
-  }, 6000); // 6s hook timeout
+  }, 30000); // allow more time for Selenium driver startup
 
   afterAll(async () => {
     if (driver) {

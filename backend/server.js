@@ -28,9 +28,15 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "healthy", timestamp: new Date() });
 });
 
-// Start Express server
-const server = app.listen(PORT, () => {
-  console.log(`📡 Express server is online and listening on port ${PORT}`);
-});
+// Start Express server only when run directly (prevents port collisions in tests)
+let server;
+if (process.env.NODE_ENV !== "test") {
+  server = app.listen(PORT, () => {
+    console.log(`Express server is online and listening on port ${PORT}`);
 
-export default server;
+  });
+}
+
+export default app;
+export { server };
+

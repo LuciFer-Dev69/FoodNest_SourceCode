@@ -14,7 +14,8 @@ class MockDatabase {
     this.donations = [];
     this.meal_plans = [];
     this.notifications = [];
-    console.warn("⚠️ MySQL is not configured or reachable. Falling back to an in-memory database simulation.");
+    console.warn("MySQL is not configured or reachable. Falling back to an in-memory database simulation.");
+
     isMockDatabase = true;
   }
 
@@ -171,7 +172,8 @@ try {
   
   // Test connection
   await pool.query("SELECT 1");
-  console.log("🚀 MySQL database connected successfully!");
+  console.log("MySQL database connected successfully!");
+
 } catch (error) {
   // Fallback
   pool = new MockDatabase();

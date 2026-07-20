@@ -16,10 +16,14 @@ import {
   Sun,
   LogOut,
 } from "lucide-react";
+
 import { motion, AnimatePresence } from "motion/react";
 import { useEffect, useState } from "react";
 import { useTheme } from "@/hooks/use-theme";
 import { useAuth } from "@/hooks/use-auth";
+import { useHistoryController } from "@/controllers/history.controller";
+
+
 
 const nav = [
   { to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -54,6 +58,7 @@ export default function AppShell() {
       {/* Sidebar */}
       <aside className="fixed inset-y-3 left-3 z-40 hidden w-64 lg:block">
         <div className="glass-card flex h-full flex-col rounded-3xl p-4">
+
           <Link to="/" className="mb-6 flex items-center gap-2 px-2">
             <span className="grid h-9 w-9 place-items-center rounded-2xl bg-gradient-primary text-white shadow-soft">
               <Leaf className="h-4 w-4" />
@@ -105,6 +110,37 @@ export default function AppShell() {
             <p className="text-2xl font-bold">8.4 kg</p>
             <p className="text-xs opacity-90">food saved · keep going 🌱</p>
           </div>
+
+          {/* History */}
+          {(() => {
+            const { loading, items } = useHistoryController();
+            return (
+              <div className="mt-3 rounded-2xl p-4">
+                <p className="text-sm font-semibold">History</p>
+                <p className="mt-1 text-xs text-muted-foreground">Your claimed donations & notifications</p>
+                <ul className="mt-3 space-y-2 max-h-44 overflow-auto pr-1">
+                  {loading && <li className="text-xs text-muted-foreground">Loading…</li>}
+                  {!loading && items.length === 0 && (
+                    <li className="text-xs text-muted-foreground">No activity yet</li>
+                  )}
+                  {!loading &&
+                    items.map((h, idx) => (
+                      <li key={h.id ?? idx} className="flex items-start gap-3 rounded-xl bg-background/40 px-3 py-2">
+                        <span className="grid h-8 w-8 place-items-center rounded-2xl bg-secondary">{h.kind === "donation" ? <HeartHandshake className="h-4 w-4" /> : <Bell className="h-4 w-4" />}</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-semibold">{h.title}</p>
+                          {h.subtitle && <p className="truncate text-[11px] text-muted-foreground">{h.subtitle}</p>}
+                        </div>
+                        {h.createdAt && (
+                          <Clock className="mt-1 h-3.5 w-3.5 text-muted-foreground" />
+                        )}
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            );
+          })()}
+
         </div>
       </aside>
 
