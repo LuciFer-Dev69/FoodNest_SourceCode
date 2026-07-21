@@ -1,30 +1,81 @@
-export type DonationStatus = "Available" | "Reserved" | "Claimed" | "Expired";
+export type DonationStatus = "Available" | "Reserved" | "Completed" | "Expired";
 
-export type DonationCard = {
-  id?: number;
-  emoji: string;
-  t: string;
-  who: string;
-  km: number;
-  cat: string;
-  pickup: string;
-  status: DonationStatus;
+export type Donor = {
+  id: string;
+  name: string;
+  email: string;
 };
 
-export const DONATION_CARDS: DonationCard[] = [
-  { emoji: "🍞", t: "Sourdough loaves (2)", who: "Mia", km: 0.4, cat: "Bakery", pickup: "Today · 5–7pm", status: "Available" },
-  { emoji: "🥬", t: "Organic spinach (300g)", who: "Lucas", km: 1.2, cat: "Produce", pickup: "Tomorrow · 9–11am", status: "Reserved" },
-  { emoji: "🥛", t: "Almond milk x3", who: "Priya", km: 0.8, cat: "Dairy alt.", pickup: "Today · 6–8pm", status: "Available" },
-  { emoji: "🍎", t: "Apples (1 kg)", who: "Noah", km: 2.0, cat: "Produce", pickup: "Today · 7–9pm", status: "Available" },
-  { emoji: "🍝", t: "Pasta (sealed)", who: "Sofia", km: 1.6, cat: "Pantry", pickup: "Closed", status: "Claimed" },
-  { emoji: "🥕", t: "Heirloom carrots", who: "Aida", km: 0.9, cat: "Produce", pickup: "Tomorrow · 12–2pm", status: "Available" },
-  { emoji: "🧀", t: "Cheddar block", who: "Owen", km: 1.5, cat: "Dairy", pickup: "Tomorrow · 4–6pm", status: "Available" },
-  { emoji: "🥑", t: "Avocados (4)", who: "Lea", km: 0.6, cat: "Produce", pickup: "Today · 8–9pm", status: "Reserved" },
+export type Donation = {
+  id: string;
+  foodName: string;
+  category: string;
+  quantity: number;
+  unit: string;
+  description: string;
+  expirationDate: string | null;
+  pickupDate: string | null;
+  pickupTime: string;
+  address: string;
+  city: string;
+  landmark: string;
+  image: string | null;
+  status: DonationStatus;
+  claimedBy: string | null;
+  donor: Donor;
+  isOwner: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type DonationFormData = {
+  foodName: string;
+  category: string;
+  quantity: number;
+  unit: string;
+  description: string;
+  expirationDate: string;
+  pickupDate: string;
+  pickupTime: string;
+  address: string;
+  city: string;
+  landmark: string;
+  image: File | null;
+  shareToCommunity: boolean;
+};
+
+export type SortOption = {
+  label: string;
+  value: string;
+};
+
+export const CATEGORIES = ["All", "Produce", "Dairy", "Bakery", "Pantry", "Meat", "Other"] as const;
+
+export const STATUS_FILTERS = ["All", "Available", "Reserved", "Completed"] as const;
+
+export const SORT_OPTIONS: SortOption[] = [
+  { label: "Newest first", value: "-createdAt" },
+  { label: "Oldest first", value: "createdAt" },
+  { label: "Name A-Z", value: "foodName" },
+  { label: "Name Z-A", value: "-foodName" },
+  { label: "Expiring soonest", value: "expirationDate" },
+  { label: "Expiring latest", value: "-expirationDate" },
+  { label: "Quantity ↑", value: "quantity" },
+  { label: "Quantity ↓", value: "-quantity" },
 ];
 
-export const DONATION_TONES: Record<DonationStatus, string> = {
-  Available: "bg-success/15 text-success",
-  Reserved: "bg-warning/15 text-warning",
-  Claimed: "bg-muted text-muted-foreground",
-  Expired: "bg-destructive/15 text-destructive",
+export const STATUS_LABELS: Record<DonationStatus, string> = {
+  Available: "Available",
+  Reserved: "Reserved",
+  Completed: "Completed",
+  Expired: "Expired",
 };
+
+export const STATUS_BADGES: Record<DonationStatus, string> = {
+  Available: "bg-green-500/15 text-green-600 dark:text-green-400",
+  Reserved: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+  Completed: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
+  Expired: "bg-red-500/15 text-red-600 dark:text-red-400",
+};
+
+export const PLACEHOLDER_IMAGE = null;

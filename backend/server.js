@@ -11,6 +11,8 @@ import inventoryRoutes from "./routes/inventoryRoutes.js";
 import donationsRoutes from "./routes/donationsRoutes.js";
 import mealsRoutes from "./routes/mealsRoutes.js";
 import notificationsRoutes from "./routes/notificationsRoutes.js";
+import analyticsRoutes from "./routes/analyticsRoutes.js";
+import communityRoutes from "./routes/communityRoutes.js";
 
 dotenv.config();
 
@@ -29,6 +31,8 @@ app.use("/api/inventory", inventoryRoutes);
 app.use("/api/donations", donationsRoutes);
 app.use("/api/meals", mealsRoutes);
 app.use("/api/notifications", notificationsRoutes);
+app.use("/api/analytics", analyticsRoutes);
+app.use("/api/community", communityRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "healthy", timestamp: new Date() });

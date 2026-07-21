@@ -23,7 +23,11 @@ import { Route as AppInventoryRouteImport } from './routes/app.inventory'
 import { Route as AppHelpRouteImport } from './routes/app.help'
 import { Route as AppDonationsRouteImport } from './routes/app.donations'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
+import { Route as AppCommunityRouteImport } from './routes/app.community'
 import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
+import { Route as AppCommunitySavedRouteImport } from './routes/app.community.saved'
+import { Route as AppCommunityNearbyRouteImport } from './routes/app.community.nearby'
+import { Route as AppCommunityDonationMapRouteImport } from './routes/app.community.donation-map'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -95,10 +99,30 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCommunityRoute = AppCommunityRouteImport.update({
+  id: '/community',
+  path: '/community',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
   getParentRoute: () => AppRoute,
+} as any)
+const AppCommunitySavedRoute = AppCommunitySavedRouteImport.update({
+  id: '/saved',
+  path: '/saved',
+  getParentRoute: () => AppCommunityRoute,
+} as any)
+const AppCommunityNearbyRoute = AppCommunityNearbyRouteImport.update({
+  id: '/nearby',
+  path: '/nearby',
+  getParentRoute: () => AppCommunityRoute,
+} as any)
+const AppCommunityDonationMapRoute = AppCommunityDonationMapRouteImport.update({
+  id: '/donation-map',
+  path: '/donation-map',
+  getParentRoute: () => AppCommunityRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -108,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/app/analytics': typeof AppAnalyticsRoute
+  '/app/community': typeof AppCommunityRouteWithChildren
   '/app/dashboard': typeof AppDashboardRoute
   '/app/donations': typeof AppDonationsRoute
   '/app/help': typeof AppHelpRoute
@@ -117,6 +142,9 @@ export interface FileRoutesByFullPath {
   '/app/profile': typeof AppProfileRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/': typeof AppIndexRoute
+  '/app/community/donation-map': typeof AppCommunityDonationMapRoute
+  '/app/community/nearby': typeof AppCommunityNearbyRoute
+  '/app/community/saved': typeof AppCommunitySavedRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -124,6 +152,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/app/analytics': typeof AppAnalyticsRoute
+  '/app/community': typeof AppCommunityRouteWithChildren
   '/app/dashboard': typeof AppDashboardRoute
   '/app/donations': typeof AppDonationsRoute
   '/app/help': typeof AppHelpRoute
@@ -133,6 +162,9 @@ export interface FileRoutesByTo {
   '/app/profile': typeof AppProfileRoute
   '/app/settings': typeof AppSettingsRoute
   '/app': typeof AppIndexRoute
+  '/app/community/donation-map': typeof AppCommunityDonationMapRoute
+  '/app/community/nearby': typeof AppCommunityNearbyRoute
+  '/app/community/saved': typeof AppCommunitySavedRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -142,6 +174,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/app/analytics': typeof AppAnalyticsRoute
+  '/app/community': typeof AppCommunityRouteWithChildren
   '/app/dashboard': typeof AppDashboardRoute
   '/app/donations': typeof AppDonationsRoute
   '/app/help': typeof AppHelpRoute
@@ -151,6 +184,9 @@ export interface FileRoutesById {
   '/app/profile': typeof AppProfileRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/': typeof AppIndexRoute
+  '/app/community/donation-map': typeof AppCommunityDonationMapRoute
+  '/app/community/nearby': typeof AppCommunityNearbyRoute
+  '/app/community/saved': typeof AppCommunitySavedRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -161,6 +197,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/app/analytics'
+    | '/app/community'
     | '/app/dashboard'
     | '/app/donations'
     | '/app/help'
@@ -170,6 +207,9 @@ export interface FileRouteTypes {
     | '/app/profile'
     | '/app/settings'
     | '/app/'
+    | '/app/community/donation-map'
+    | '/app/community/nearby'
+    | '/app/community/saved'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -177,6 +217,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/app/analytics'
+    | '/app/community'
     | '/app/dashboard'
     | '/app/donations'
     | '/app/help'
@@ -186,6 +227,9 @@ export interface FileRouteTypes {
     | '/app/profile'
     | '/app/settings'
     | '/app'
+    | '/app/community/donation-map'
+    | '/app/community/nearby'
+    | '/app/community/saved'
   id:
     | '__root__'
     | '/'
@@ -194,6 +238,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/app/analytics'
+    | '/app/community'
     | '/app/dashboard'
     | '/app/donations'
     | '/app/help'
@@ -203,6 +248,9 @@ export interface FileRouteTypes {
     | '/app/profile'
     | '/app/settings'
     | '/app/'
+    | '/app/community/donation-map'
+    | '/app/community/nearby'
+    | '/app/community/saved'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -313,6 +361,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/community': {
+      id: '/app/community'
+      path: '/community'
+      fullPath: '/app/community'
+      preLoaderRoute: typeof AppCommunityRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/analytics': {
       id: '/app/analytics'
       path: '/analytics'
@@ -320,11 +375,49 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAnalyticsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/community/saved': {
+      id: '/app/community/saved'
+      path: '/saved'
+      fullPath: '/app/community/saved'
+      preLoaderRoute: typeof AppCommunitySavedRouteImport
+      parentRoute: typeof AppCommunityRoute
+    }
+    '/app/community/nearby': {
+      id: '/app/community/nearby'
+      path: '/nearby'
+      fullPath: '/app/community/nearby'
+      preLoaderRoute: typeof AppCommunityNearbyRouteImport
+      parentRoute: typeof AppCommunityRoute
+    }
+    '/app/community/donation-map': {
+      id: '/app/community/donation-map'
+      path: '/donation-map'
+      fullPath: '/app/community/donation-map'
+      preLoaderRoute: typeof AppCommunityDonationMapRouteImport
+      parentRoute: typeof AppCommunityRoute
+    }
   }
 }
 
+interface AppCommunityRouteChildren {
+  AppCommunityDonationMapRoute: typeof AppCommunityDonationMapRoute
+  AppCommunityNearbyRoute: typeof AppCommunityNearbyRoute
+  AppCommunitySavedRoute: typeof AppCommunitySavedRoute
+}
+
+const AppCommunityRouteChildren: AppCommunityRouteChildren = {
+  AppCommunityDonationMapRoute: AppCommunityDonationMapRoute,
+  AppCommunityNearbyRoute: AppCommunityNearbyRoute,
+  AppCommunitySavedRoute: AppCommunitySavedRoute,
+}
+
+const AppCommunityRouteWithChildren = AppCommunityRoute._addFileChildren(
+  AppCommunityRouteChildren,
+)
+
 interface AppRouteChildren {
   AppAnalyticsRoute: typeof AppAnalyticsRoute
+  AppCommunityRoute: typeof AppCommunityRouteWithChildren
   AppDashboardRoute: typeof AppDashboardRoute
   AppDonationsRoute: typeof AppDonationsRoute
   AppHelpRoute: typeof AppHelpRoute
@@ -338,6 +431,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAnalyticsRoute: AppAnalyticsRoute,
+  AppCommunityRoute: AppCommunityRouteWithChildren,
   AppDashboardRoute: AppDashboardRoute,
   AppDonationsRoute: AppDonationsRoute,
   AppHelpRoute: AppHelpRoute,

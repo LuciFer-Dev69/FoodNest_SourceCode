@@ -20,22 +20,24 @@ export async function getDashboard(req, res) {
   sevenDaysAgo.setHours(0, 0, 0, 0);
 
   try {
-    const [
-      user,
-      inventoryItems,
-      activeDonations,
-      mealPlans,
-      notifications,
-    ] = await Promise.all([
+    const [user, inventoryItems, myDonations, claimedDonations, mealPlans, notifications] = await Promise.all([
       User.findById(userId, "name email profilePicture provider createdAt"),
-      Inventory.find({ user_id: userId }).select("name emoji qty cat loc expires_in_days created_at").sort({ created_at: -1 }).lean(),
-      Donation.find({ donor_id: userId, status: "Available" }).select("name emoji qty cat pickup_time status created_at km").sort({ created_at: -1 }).lean(),
+      Inventory.find({ userId }).sort({ createdAt: -1 }).lean(),
+      Donation.find({ userId }).sort({ createdAt: -1 }).lean(),
+      Donation.find({ claimedBy: userId, status: { $in: ["Reserved", "Completed"] } }).sort({ createdAt: -1 }).lean(),
       MealPlan.find({ user_id: userId }).select("slot_key name emoji uses_count created_at").lean(),
       Notification.find({ user_id: userId }).select("message type is_read created_at").sort({ created_at: -1 }).limit(5).lean(),
     ]);
 
+    const allDonations = [...myDonations, ...claimedDonations];
+    const activeDonations = myDonations.filter((d) => d.status === "Available");
+    const completedDonations = allDonations.filter((d) => d.status === "Completed");
+    const reservedDonations = allDonations.filter((d) => d.status === "Reserved");
+
     const inventoryCount = inventoryItems.length;
     const donationCount = activeDonations.length;
+    const totalDonations = allDonations.length;
+    const completedCount = completedDonations.length;
     const mealPlanCount = mealPlans.length;
     const unreadCount = notifications.filter((n) => !n.is_read).length;
 
@@ -48,19 +50,20 @@ export async function getDashboard(req, res) {
     });
 
     const expiringToday = inventoryItems.filter((item) => {
-      if (!item.created_at) return false;
-      const created = new Date(item.created_at);
-      const expiresAt = new Date(created);
-      expiresAt.setDate(expiresAt.getDate() + (item.expires_in_days || 0));
-      return expiresAt <= now && expiresAt >= startOfToday;
+      if (!item.expirationDate) return false;
+      const exp = new Date(item.expirationDate);
+      return exp >= startOfToday && exp <= new Date(now.getTime() + 86400000);
     });
 
     const priorities = [];
     if (expiringToday.length > 0) {
       priorities.push({ type: "expiring", text: `${expiringToday.length} food item(s) expire today.`, icon: "AlertTriangle" });
     }
-    if (donationCount > 0) {
-      priorities.push({ type: "donation", text: `${donationCount} donation(s) waiting for pickup.`, icon: "HeartHandshake" });
+    if (activeDonations.length > 0) {
+      priorities.push({ type: "donation", text: `${activeDonations.length} donation(s) waiting for pickup.`, icon: "HeartHandshake" });
+    }
+    if (reservedDonations.length > 0) {
+      priorities.push({ type: "reserved", text: `${reservedDonations.length} donation(s) reserved and ready to complete.`, icon: "HeartHandshake" });
     }
     if (inventoryCount < 5) {
       priorities.push({ type: "low_inventory", text: "Your inventory is running low. Add more items.", icon: "Package" });
@@ -77,25 +80,24 @@ export async function getDashboard(req, res) {
 
     const recentInventory = inventoryItems.slice(0, 5).map((i) => ({
       id: i._id,
-      name: i.name,
-      emoji: i.emoji,
-      qty: i.qty,
-      cat: i.cat,
-      loc: i.loc,
-      expires: i.expires_in_days,
-      createdAt: i.created_at,
+      name: i.foodName,
+      quantity: i.quantity,
+      unit: i.unit,
+      category: i.category,
+      location: i.storageLocation,
+      createdAt: i.createdAt,
     }));
 
-    const donationPreview = activeDonations.slice(0, 3).map((d) => ({
+    const donationPreview = myDonations.slice(0, 3).map((d) => ({
       id: d._id,
-      name: d.name,
-      emoji: d.emoji,
-      qty: d.qty,
-      cat: d.cat,
+      name: d.foodName,
+      category: d.category,
+      quantity: d.quantity,
+      unit: d.unit,
       status: d.status,
-      pickup: d.pickup_time,
-      km: d.km,
-      createdAt: d.created_at,
+      city: d.city,
+      pickup: d.pickupTime,
+      createdAt: d.createdAt,
     }));
 
     const latestNotifications = notifications.map((n) => ({
@@ -108,13 +110,29 @@ export async function getDashboard(req, res) {
 
     const activityEntries = [];
     inventoryItems.slice(0, 5).forEach((i) => {
-      activityEntries.push({ type: "inventory", action: "Added", text: `Added ${i.name} to Inventory`, emoji: i.emoji || "📦", createdAt: i.created_at });
+      activityEntries.push({
+        type: "inventory",
+        action: "Added",
+        text: `Added ${i.foodName} to Inventory`,
+        createdAt: i.createdAt,
+      });
     });
-    activeDonations.slice(0, 3).forEach((d) => {
-      activityEntries.push({ type: "donation", action: "Created", text: `Created Donation: ${d.name}`, emoji: d.emoji || "❤️", createdAt: d.created_at });
+    allDonations.slice(0, 5).forEach((d) => {
+      activityEntries.push({
+        type: "donation",
+        action: "Created",
+        text: `${d.status === "Completed" ? "Completed" : "Created"} Donation: ${d.foodName}`,
+        createdAt: d.createdAt,
+      });
     });
     mealPlans.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 3).forEach((m) => {
-      activityEntries.push({ type: "meal", action: "Planned", text: `Planned ${m.name} for ${m.slot_key}`, emoji: m.emoji || "🍳", createdAt: m.created_at });
+      activityEntries.push({
+        type: "meal",
+        action: "Planned",
+        text: `Planned ${m.name} for ${m.slot_key}`,
+        emoji: m.emoji || "🍳",
+        createdAt: m.created_at,
+      });
     });
     activityEntries.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     const recentActivity = activityEntries.slice(0, 10);
@@ -129,8 +147,8 @@ export async function getDashboard(req, res) {
       const dayEnd = new Date(d);
       dayEnd.setHours(23, 59, 59, 999);
       const count = inventoryItems.filter((item) => {
-        if (!item.created_at) return false;
-        const c = new Date(item.created_at);
+        if (!item.createdAt) return false;
+        const c = new Date(item.createdAt);
         return c >= dayStart && c <= dayEnd;
       }).length;
       chartData.push({ day: dayNames[d.getDay()], count });
@@ -141,7 +159,7 @@ export async function getDashboard(req, res) {
       { key: "profile", label: "Complete Profile", done: !!(user.name && user.email) },
       { key: "inventory", label: "Add Your First Inventory Item", done: inventoryCount > 0 },
       { key: "meal_plan", label: "Create Your First Meal Plan", done: mealPlanCount > 0 },
-      { key: "donation", label: "List Your First Donation", done: donationCount > 0 },
+      { key: "donation", label: "List Your First Donation", done: totalDonations > 0 },
     ];
     onboardingSteps.forEach((step) => { if (step.done) completionScore += 25; });
 
@@ -154,7 +172,9 @@ export async function getDashboard(req, res) {
       },
       stats: {
         inventoryCount,
-        donationCount,
+        donationCount: activeDonations.length,
+        totalDonations,
+        completedDonations: completedCount,
         mealPlanCount,
         unreadCount,
       },

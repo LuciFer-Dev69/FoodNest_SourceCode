@@ -15,6 +15,10 @@ import {
   Moon,
   Sun,
   LogOut,
+  Clock,
+  MessageSquare,
+  Bookmark,
+  MapPin,
 } from "lucide-react";
 
 import { motion, AnimatePresence } from "motion/react";
@@ -29,6 +33,7 @@ const nav = [
   { to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/app/inventory", label: "Inventory", icon: Package },
   { to: "/app/donations", label: "Donations", icon: HeartHandshake },
+  { to: "/app/community", label: "Community", icon: MessageSquare },
   { to: "/app/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/app/planner", label: "Meal Planner", icon: CalendarDays },
   { to: "/app/notifications", label: "Notifications", icon: Bell },

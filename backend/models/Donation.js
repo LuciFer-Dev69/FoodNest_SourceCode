@@ -1,15 +1,35 @@
 import mongoose from "mongoose";
 
 const donationSchema = new mongoose.Schema({
-  donor_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  claimant_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
-  name: { type: String, required: true },
-  emoji: { type: String, default: "🍞" },
-  qty: { type: String, required: true },
-  cat: { type: String, required: true },
-  pickup_time: { type: String, required: true },
-  status: { type: String, enum: ["Available", "Reserved", "Claimed", "Expired"], default: "Available" },
-  km: { type: Number, default: 0.0 },
-}, { timestamps: { createdAt: "created_at" } });
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  foodName: { type: String, required: true },
+  category: {
+    type: String,
+    enum: ["Produce", "Dairy", "Bakery", "Pantry", "Meat", "Other"],
+    default: "Other",
+  },
+  quantity: { type: Number, required: true, min: 0 },
+  unit: { type: String, default: "unit" },
+  description: { type: String, default: "" },
+  expirationDate: { type: Date },
+  pickupDate: { type: Date },
+  pickupTime: { type: String, default: "" },
+  address: { type: String, default: "" },
+  city: { type: String, default: "" },
+  landmark: { type: String, default: "" },
+  image: { type: String, default: null },
+  status: {
+    type: String,
+    enum: ["Available", "Reserved", "Completed", "Expired"],
+    default: "Available",
+  },
+  claimedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+}, { timestamps: true });
+
+donationSchema.index({ userId: 1, createdAt: -1 });
+donationSchema.index({ status: 1, createdAt: -1 });
+donationSchema.index({ category: 1, status: 1 });
+donationSchema.index({ city: 1, status: 1 });
+donationSchema.index({ foodName: "text", city: "text" });
 
 export default mongoose.model("Donation", donationSchema);

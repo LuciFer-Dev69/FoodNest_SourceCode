@@ -1,93 +1,154 @@
-import { useState, useEffect, useMemo } from "react";
-import { DONATION_CARDS, DonationCard } from "@/models/donations.model";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { Donation, CATEGORIES } from "@/models/donations.model";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 
 export function useDonationsController() {
-  const [filter, setFilter] = useState<string>("All");
-  const [donations, setDonations] = useState<DonationCard[]>([]);
+  const [q, setQ] = useState("");
+  const [cat, setCat] = useState<string>("All");
+  const [sort, setSort] = useState("-createdAt");
+  const [items, setItems] = useState<Donation[]>([]);
   const [loading, setLoading] = useState(true);
-  const cats = ["All", "Produce", "Dairy", "Bakery", "Pantry"];
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
 
-  const fetchDonations = async () => {
+  const cats = CATEGORIES;
+  const editingItem = useMemo(
+    () => (editId ? items.find((i) => i.id === editId) ?? null : null),
+    [editId, items],
+  );
+  const detailItem = useMemo(
+    () => (detailId ? items.find((i) => i.id === detailId) ?? null : null),
+    [detailId, items],
+  );
+
+  const fetchItems = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await api.get<DonationCard[]>("/api/donations");
-      setDonations(data);
-    } catch (err) {
-      console.warn("Could not connect to database backend. Using mock donations seed.", err.message);
-      setDonations(DONATION_CARDS);
+      const params = new URLSearchParams();
+      if (q) params.set("search", q);
+      if (cat !== "All") params.set("category", cat);
+      params.set("sort", sort);
+      params.set("limit", "100");
+
+      const data = await api.get<{ items: Donation[] }>(`/api/donations?${params}`);
+      setItems(data.items);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to load donations");
     } finally {
       setLoading(false);
     }
-  };
+  }, [q, cat, sort]);
 
   useEffect(() => {
-    fetchDonations();
-  }, []);
+    fetchItems();
+  }, [fetchItems]);
 
-  const filteredItems = useMemo(() => {
-    return filter === "All"
-      ? donations
-      : donations.filter((c) => c.cat.toLowerCase().includes(filter.toLowerCase()));
-  }, [donations, filter]);
+  const handleCreateOpen = () => {
+    setEditId(null);
+    setCreateOpen(true);
+  };
 
-  const handleClaim = async (id: number) => {
+  const handleEditOpen = (item: Donation) => {
+    setEditId(item.id);
+    setCreateOpen(true);
+  };
+
+  const handleCloseForm = () => {
+    setCreateOpen(false);
+    setEditId(null);
+  };
+
+  const handleDetailOpen = (item: Donation) => {
+    setDetailId(item.id);
+  };
+
+  const handleDetailClose = () => {
+    setDetailId(null);
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const foodName = formData.get("foodName") as string;
+    const quantity = formData.get("quantity") as string;
+
+    if (!foodName || !quantity) {
+      toast.error("Food name and quantity are required.");
+      return;
+    }
+
+    const file = formData.get("image") as File;
+    if (!file || file.size === 0) {
+      formData.delete("image");
+    }
+    formData.delete("shareToCommunity");
+    const shareToCommunity = form.querySelector<HTMLInputElement>('[name="shareToCommunity"]')?.checked ?? false;
+
     try {
-      await api.put(`/api/donations/${id}/claim`, {});
-      toast.success("Donation claimed successfully!");
-      fetchDonations();
-    } catch (err) {
-      // Mock local fallback
-      setDonations((prev) => {
-        const updated = [...prev];
-        const index = updated.findIndex((d: any) => d.id === id);
-        if (index !== -1 && updated[index].status === "Available") {
-          updated[index] = { ...updated[index], status: "Claimed" };
+      if (editId) {
+        const updated = await api.putFormData<Donation>(`/api/donations/${editId}`, formData);
+        setItems((prev) => prev.map((i) => (i.id === editId ? updated : i)));
+        toast.success(`${foodName} updated`);
+      } else {
+        const saved = await api.postFormData<Donation>("/api/donations", formData);
+        setItems((prev) => [saved, ...prev]);
+        if (shareToCommunity) {
+          toast.success(`${foodName} published! Shared to community.`);
+        } else {
+          toast.success(`${foodName} published!`);
         }
-        return updated;
-      });
-      toast.success("Donation claimed locally (offline mode)");
+      }
+      handleCloseForm();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save donation");
     }
   };
 
-  const handleListDonation = async () => {
-    // Show mock dialog or trigger listing creation
-    const name = prompt("Enter food name to donate:");
-    if (!name) return;
-    const qty = prompt("Enter quantity (e.g. 2 loaves, 500g):") || "1 unit";
-    const cat = prompt("Enter category (Produce, Dairy, Bakery, Pantry):") || "Produce";
-    const pickup = prompt("Enter pickup window (e.g. Today 5-7pm):") || "Today";
-
-    const newDonation = { name, emoji: "🍞", qty, cat, pickup };
-
+  const handleClaim = async (id: string) => {
     try {
-      const saved = await api.post<DonationCard>("/api/donations", newDonation);
-      setDonations(prev => [...prev, saved]);
-      toast.success("Donation listed successfully!");
-    } catch (err) {
-      const mockSaved: DonationCard = {
-        emoji: "🍞",
-        t: name,
-        who: "You",
-        km: 0.5,
-        cat,
-        pickup,
-        status: "Available"
-      };
-      setDonations(prev => [...prev, mockSaved]);
-      toast.success("Donation listed locally (offline mode)");
+      const updated = await api.put<Donation>(`/api/donations/${id}/claim`);
+      setItems((prev) => prev.map((i) => (i.id === id ? updated : i)));
+      toast.success("Donation claimed! The owner will be notified.");
+      handleDetailClose();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to claim donation");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await api.delete(`/api/donations/${id}`);
+      setItems((prev) => prev.filter((i) => i.id !== id));
+      toast.success("Donation deleted");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete donation");
     }
   };
 
   return {
-    filter,
-    setFilter,
-    cats,
-    items: filteredItems,
+    q, setQ,
+    cat, setCat,
+    sort, setSort,
+    items,
     loading,
+    createOpen,
+    editId,
+    editingItem,
+    detailId,
+    detailItem,
+    cats,
+    fetchItems,
+    handleCreateOpen,
+    handleEditOpen,
+    handleCloseForm,
+    handleDetailOpen,
+    handleDetailClose,
+    handleSubmit,
     handleClaim,
-    handleListDonation,
+    handleDelete,
   };
 }
 
