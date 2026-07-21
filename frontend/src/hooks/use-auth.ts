@@ -10,6 +10,8 @@ export interface AuthUser {
   id: string;
   name: string;
   email: string;
+  provider?: string;
+  profilePicture?: string | null;
 }
 
 function parseJwt(token: string): AuthUser | null {

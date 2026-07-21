@@ -19,11 +19,13 @@ function Profile() {
   const [profileData, setProfileData] = useState<{
     email?: string;
     createdAt?: string;
+    provider?: string;
+    profilePicture?: string | null;
   }>({});
 
   useEffect(() => {
     api
-      .get<{ email: string; createdAt: string }>("/api/auth/profile")
+      .get<{ email: string; createdAt: string; provider: string; profilePicture: string | null }>("/api/auth/profile")
       .then((data) => {
         setProfileData(data);
         setName(data.email ? name || user?.name || "" : user?.name || "");
@@ -51,14 +53,24 @@ function Profile() {
     ? new Date(profileData.createdAt).getFullYear()
     : new Date().getFullYear();
 
+  const isGoogleUser = profileData.provider === "google" || user?.provider === "google";
+
   return (
     <>
       <PageHeader title="Your profile" subtitle="Personal details and lifetime impact." />
       <div className="grid gap-4 lg:grid-cols-3">
         <Panel className="lg:col-span-1 text-center">
-          <div className="mx-auto grid h-24 w-24 place-items-center rounded-full bg-gradient-primary text-3xl font-bold text-white shadow-lift">
-            {getInitials()}
-          </div>
+          {profileData.profilePicture ? (
+            <img
+              src={profileData.profilePicture}
+              alt={user?.name || "Profile"}
+              className="mx-auto h-24 w-24 rounded-full object-cover shadow-lift"
+            />
+          ) : (
+            <div className="mx-auto grid h-24 w-24 place-items-center rounded-full bg-gradient-primary text-3xl font-bold text-white shadow-lift">
+              {getInitials()}
+            </div>
+          )}
 
           {editing ? (
             <div className="mt-3 flex items-center gap-2 justify-center">
@@ -85,12 +97,14 @@ function Profile() {
           ) : (
             <div className="mt-3 flex items-center justify-center gap-2">
               <h3 className="text-xl font-bold">{user?.name || name}</h3>
-              <button
-                onClick={() => setEditing(true)}
-                className="grid h-7 w-7 place-items-center rounded-lg text-muted-foreground hover:bg-secondary"
-              >
-                <Edit2 className="h-3.5 w-3.5" />
-              </button>
+              {!isGoogleUser && (
+                <button
+                  onClick={() => setEditing(true)}
+                  className="grid h-7 w-7 place-items-center rounded-lg text-muted-foreground hover:bg-secondary"
+                >
+                  <Edit2 className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
           )}
 
@@ -102,6 +116,15 @@ function Profile() {
             <span className="rounded-full bg-success/15 px-2.5 py-1 text-xs font-semibold text-success">
               Verified
             </span>
+            {isGoogleUser ? (
+              <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700">
+                Google Account
+              </span>
+            ) : (
+              <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary">
+                Local Account
+              </span>
+            )}
           </div>
         </Panel>
 

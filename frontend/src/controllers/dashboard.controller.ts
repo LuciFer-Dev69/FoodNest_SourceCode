@@ -1,73 +1,53 @@
-import { useState, useEffect } from "react";
-import { TREND_DATA, PIE_DATA, PIE_COLORS, RECENT_ACTIVITIES, WEEKLY_SUMMARY } from "@/models/dashboard.model";
+import { useState, useEffect, useCallback } from "react";
 import { api } from "@/lib/api";
-import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { DashboardData } from "@/models/dashboard.model";
 
 export function useDashboardController() {
   const { user } = useAuth();
-  const [userName, setUserName] = useState(user?.name || "there");
-  const [stats, setStats] = useState({
-    foodSaved: "128 kg",
-    inventoryCount: "42",
-    expiringSoon: "7",
-    donationsCount: "24"
-  });
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Attempt to fetch current user and stats
-    const fetchDashboardStats = async () => {
-      try {
-        const userProfile = await api.get<{ name: string }>("/api/auth/profile").catch(() => null);
-        if (userProfile?.name) {
-          setUserName(userProfile.name);
-        }
-
-        // Try getting inventory count
-        const inventory = await api.get<any[]>("/api/inventory").catch(() => null);
-        if (inventory) {
-          const expiringCount = inventory.filter((item: any) => item.expires <= 3).length;
-          setStats(prev => ({
-            ...prev,
-            inventoryCount: String(inventory.length),
-            expiringSoon: String(expiringCount)
-          }));
-        }
-      } catch (err) {
-        // use default mock statistics
-      }
-    };
-    fetchDashboardStats();
+  const fetchDashboard = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await api.get<DashboardData>("/api/dashboard");
+      setData(res);
+    } catch (err: any) {
+      setError(err.message || "Failed to load dashboard");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const handleGenerateWeeklyPlan = async () => {
-    try {
-      toast.promise(
-        api.post("/api/meals/generate", {}).catch(async (err) => {
-          // Simulate backend processing time
-          await new Promise(resolve => setTimeout(resolve, 1500));
-          return { success: true };
-        }),
-        {
-          loading: "AI is analyzing your inventory...",
-          success: "Weekly meal plan auto-generated successfully!",
-          error: "Could not generate weekly plan"
-        }
-      );
-    } catch (err) {
-      toast.error("An error occurred during AI plan generation");
-    }
-  };
+  useEffect(() => {
+    fetchDashboard();
+  }, [fetchDashboard]);
+
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+
+  const userName = data?.user?.name || user?.name || "there";
+  const profilePicture = data?.user?.profilePicture || user?.profilePicture;
+
+  const today = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
   return {
+    data,
+    loading,
+    error,
+    refresh: fetchDashboard,
+    greeting,
     userName,
-    stats,
-    trend: TREND_DATA,
-    pie: PIE_DATA,
-    colors: PIE_COLORS,
-    activities: RECENT_ACTIVITIES,
-    summary: WEEKLY_SUMMARY,
-    handleGenerateWeeklyPlan,
+    profilePicture,
+    today,
   };
 }
 

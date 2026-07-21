@@ -1,44 +1,89 @@
-import { Package, AlertTriangle, HeartHandshake, CalendarDays, Sparkles, type LucideIcon } from "lucide-react";
-
-export type TrendData = {
-  d: string;
-  saved: number;
-};
-
-export type PieData = {
+export interface DashboardUser {
   name: string;
-  value: number;
-};
+  email: string;
+  profilePicture?: string | null;
+  createdAt: string;
+}
 
-export type ActivityItem = {
-  t: string;
-  w: string;
-  icon: LucideIcon;
-};
+export interface DashboardStats {
+  inventoryCount: number;
+  donationCount: number;
+  mealPlanCount: number;
+  unreadCount: number;
+}
 
-export const TREND_DATA: TrendData[] = [
-  { d: "Mon", saved: 1.2 }, { d: "Tue", saved: 2.1 }, { d: "Wed", saved: 1.6 },
-  { d: "Thu", saved: 2.8 }, { d: "Fri", saved: 2.2 }, { d: "Sat", saved: 3.4 }, { d: "Sun", saved: 3.9 },
-];
+export interface Priority {
+  type: string;
+  text: string;
+  icon: string;
+}
 
-export const PIE_DATA: PieData[] = [
-  { name: "Produce", value: 38 }, { name: "Dairy", value: 22 },
-  { name: "Pantry", value: 18 }, { name: "Bakery", value: 12 }, { name: "Other", value: 10 },
-];
+export interface ActivityEntry {
+  type: string;
+  action: string;
+  text: string;
+  emoji: string;
+  createdAt: string;
+}
 
-export const PIE_COLORS = ["oklch(0.72 0.18 145)", "oklch(0.78 0.16 130)", "oklch(0.78 0.16 70)", "oklch(0.65 0.16 160)", "oklch(0.6 0.15 220)"];
+export interface InventoryPreviewItem {
+  id: string;
+  name: string;
+  emoji: string;
+  qty: string;
+  cat: string;
+  loc: string;
+  expires: number;
+  createdAt: string;
+}
 
-export const RECENT_ACTIVITIES: ActivityItem[] = [
-  { t: "You donated Sourdough loaves", w: "2h ago", icon: HeartHandshake },
-  { t: "Spinach added to inventory", w: "5h ago", icon: Package },
-  { t: "Meal plan: Tomato soup tomorrow", w: "Yesterday", icon: CalendarDays },
-  { t: "Reminder: Yogurt expires in 2 days", w: "Yesterday", icon: AlertTriangle },
-  { t: "AI suggested 3 new recipes", w: "2 days ago", icon: Sparkles },
-];
+export interface DonationPreviewItem {
+  id: string;
+  name: string;
+  emoji: string;
+  qty: string;
+  cat: string;
+  status: string;
+  pickup: string;
+  km: number;
+  createdAt: string;
+}
 
-export const WEEKLY_SUMMARY = [
-  ["CO₂ avoided", "14.2 kg"],
-  ["Money saved", "$48"],
-  ["Meals planned", "12"],
-  ["Items rescued", "9"],
-];
+export interface NotificationItem {
+  id: string;
+  message: string;
+  type: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface OnboardingStep {
+  key: string;
+  label: string;
+  done: boolean;
+}
+
+export interface ChartDataPoint {
+  day: string;
+  count: number;
+}
+
+export interface TodayMeals {
+  Breakfast?: { name: string; emoji: string; uses: number } | null;
+  Lunch?: { name: string; emoji: string; uses: number } | null;
+  Dinner?: { name: string; emoji: string; uses: number } | null;
+}
+
+export interface DashboardData {
+  user: DashboardUser;
+  stats: DashboardStats;
+  todayMeals: TodayMeals;
+  priorities: Priority[];
+  recentActivity: ActivityEntry[];
+  inventoryPreview: InventoryPreviewItem[];
+  donationPreview: DonationPreviewItem[];
+  notifications: NotificationItem[];
+  completionScore: number;
+  onboardingSteps: OnboardingStep[];
+  activityChart: ChartDataPoint[];
+}

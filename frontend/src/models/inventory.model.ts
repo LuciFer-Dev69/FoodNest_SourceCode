@@ -1,29 +1,51 @@
 export type Item = {
   id: string;
-  name: string;
-  emoji: string;
-  qty: string;
-  cat: string;
-  loc: string;
-  expires: number;
+  foodName: string;
+  category: string;
+  quantity: number;
+  unit: string;
+  purchaseDate: string;
+  expirationDate: string;
+  storageLocation: string;
+  notes: string;
+  image: string | null;
+  status: string;
+  statusDays: number;
+  badge: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
-export const SEED_INVENTORY: Item[] = [
-  { id: "1", name: "Greek yogurt", emoji: "🥛", qty: "500 g", cat: "Dairy", loc: "Fridge", expires: 2 },
-  { id: "2", name: "Spinach", emoji: "🥬", qty: "1 bunch", cat: "Produce", loc: "Fridge", expires: 1 },
-  { id: "3", name: "Sourdough", emoji: "🍞", qty: "1 loaf", cat: "Bakery", loc: "Pantry", expires: 3 },
-  { id: "4", name: "Cherry tomatoes", emoji: "🍅", qty: "300 g", cat: "Produce", loc: "Fridge", expires: 5 },
-  { id: "5", name: "Pasta", emoji: "🍝", qty: "500 g", cat: "Pantry", loc: "Pantry", expires: 120 },
-  { id: "6", name: "Almond milk", emoji: "🥛", qty: "1 L", cat: "Dairy", loc: "Fridge", expires: 8 },
-  { id: "7", name: "Bananas", emoji: "🍌", qty: "6 pcs", cat: "Produce", loc: "Counter", expires: 4 },
-  { id: "8", name: "Feta", emoji: "🧀", qty: "200 g", cat: "Dairy", loc: "Fridge", expires: 9 },
-  { id: "9", name: "Eggs", emoji: "🥚", qty: "12 pcs", cat: "Dairy", loc: "Fridge", expires: 14 },
-  { id: "10", name: "Olive oil", emoji: "🫒", qty: "750 ml", cat: "Pantry", loc: "Pantry", expires: 220 },
-];
+export type ItemFormData = {
+  foodName: string;
+  category: string;
+  quantity: number;
+  unit: string;
+  purchaseDate: string;
+  expirationDate: string;
+  storageLocation: string;
+  notes: string;
+  image: File | null;
+};
 
-export function getExpiryTone(days: number) {
-  if (days <= 1) return "bg-destructive/15 text-destructive";
-  if (days <= 3) return "bg-warning/15 text-warning";
-  if (days <= 7) return "bg-[oklch(0.85_0.16_85)]/20 text-[oklch(0.55_0.16_60)]";
-  return "bg-success/15 text-success";
-}
+export type SortOption = {
+  label: string;
+  value: string;
+};
+
+export const CATEGORIES = ["All", "Produce", "Dairy", "Bakery", "Pantry", "Meat", "Other"] as const;
+export const STORAGE_LOCATIONS = ["All", "Fridge", "Freezer", "Pantry", "Counter", "Other"] as const;
+export const STATUS_FILTERS = ["All", "Fresh", "Expiring Soon", "Expired"] as const;
+
+export const SORT_OPTIONS: SortOption[] = [
+  { label: "Newest first", value: "-createdAt" },
+  { label: "Oldest first", value: "createdAt" },
+  { label: "Name A-Z", value: "foodName" },
+  { label: "Name Z-A", value: "-foodName" },
+  { label: "Expiring soonest", value: "expirationDate" },
+  { label: "Expiring latest", value: "-expirationDate" },
+  { label: "Category A-Z", value: "category" },
+  { label: "Category Z-A", value: "-category" },
+  { label: "Quantity ↑", value: "quantity" },
+  { label: "Quantity ↓", value: "-quantity" },
+];
