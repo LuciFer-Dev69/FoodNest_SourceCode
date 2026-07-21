@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
-import { Leaf, Mail, Lock, ArrowRight, Github, Apple, ShieldAlert } from "lucide-react";
+import { Leaf, Mail, Lock, ArrowRight, Github, Apple } from "lucide-react";
 import { useAuthController } from "@/controllers/auth.controller";
 
 export const Route = createFileRoute("/login")({
@@ -9,56 +9,7 @@ export const Route = createFileRoute("/login")({
 });
 
 function LoginPage() {
-  const {
-    loading,
-    requires2FA,
-    totpCode,
-    setTotpCode,
-    handleLogin,
-    handleVerify2FA,
-  } = useAuthController();
-
-  if (requires2FA) {
-    return (
-      <AuthLayout
-        title="2FA Verification"
-        subtitle="Enter the 6-digit verification code from your authenticator app."
-        footer={
-          <p>
-            Having trouble?{" "}
-            <Link to="/login" onClick={() => window.location.reload()} className="font-semibold text-primary hover:underline">
-              Go back
-            </Link>
-          </p>
-        }
-      >
-        <form className="space-y-4" onSubmit={handleVerify2FA}>
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-medium">Verification Code</span>
-            <span className="flex items-center gap-2 rounded-2xl border border-border bg-background/70 px-3 py-2.5 focus-within:ring-2 focus-within:ring-primary/40">
-              <span className="text-muted-foreground"><ShieldAlert className="h-4 w-4" /></span>
-              <input
-                type="text"
-                placeholder="123456"
-                value={totpCode}
-                onChange={(e) => setTotpCode(e.target.value)}
-                maxLength={6}
-                className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground text-center tracking-widest font-bold text-lg"
-              />
-            </span>
-          </label>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-primary px-5 py-3 text-sm font-semibold text-white shadow-soft transition hover:shadow-lift disabled:opacity-50"
-          >
-            {loading ? "Verifying..." : "Verify Code"} <ArrowRight className="h-4 w-4" />
-          </button>
-        </form>
-      </AuthLayout>
-    );
-  }
+  const { loading, handleLogin } = useAuthController();
 
   return (
     <AuthLayout

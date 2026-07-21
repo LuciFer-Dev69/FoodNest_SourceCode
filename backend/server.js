@@ -2,16 +2,17 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 
-import authRoutes from "./routes/auth.js";
-import inventoryRoutes from "./routes/inventory.js";
-import donationsRoutes from "./routes/donations.js";
-import mealsRoutes from "./routes/meals.js";
-import notificationsRoutes from "./routes/notifications.js";
+import { connectDB } from "./config/db.js";
+import authRoutes from "./routes/authRoutes.js";
+import inventoryRoutes from "./routes/inventoryRoutes.js";
+import donationsRoutes from "./routes/donationsRoutes.js";
+import mealsRoutes from "./routes/mealsRoutes.js";
+import notificationsRoutes from "./routes/notificationsRoutes.js";
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
@@ -31,12 +32,12 @@ app.get("/api/health", (req, res) => {
 // Start Express server only when run directly (prevents port collisions in tests)
 let server;
 if (process.env.NODE_ENV !== "test") {
-  server = app.listen(PORT, () => {
-    console.log(`Express server is online and listening on port ${PORT}`);
-
+  connectDB().then(() => {
+    server = app.listen(PORT, () => {
+      console.log(`Express server is online and listening on port ${PORT}`);
+    });
   });
 }
 
 export default app;
 export { server };
-

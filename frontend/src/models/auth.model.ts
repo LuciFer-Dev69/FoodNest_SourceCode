@@ -1,5 +1,5 @@
 export type AuthUser = {
-  id: number;
+  id: string;
   name: string;
   email: string;
 };
@@ -7,8 +7,5 @@ export type AuthUser = {
 export type AuthResponse = {
   token?: string;
   user?: AuthUser;
-  requires2FA?: boolean;
-  userId?: number;
-  email?: string;
-  name?: string;
+  message?: string;
 };

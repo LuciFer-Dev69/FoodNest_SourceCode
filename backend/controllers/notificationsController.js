@@ -1,10 +1,6 @@
-import express from "express";
 import Notification from "../models/Notification.js";
-import { authenticateToken } from "../middleware/authMiddleware.js";
 
-const router = express.Router();
-
-router.get("/", authenticateToken, async (req, res) => {
+export async function getNotifications(req, res) {
   try {
     const rows = await Notification.find({ user_id: req.user.id })
       .select("message type is_read created_at")
@@ -20,9 +16,9 @@ router.get("/", authenticateToken, async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch notifications", error: err.message });
   }
-});
+}
 
-router.post("/read-all", authenticateToken, async (req, res) => {
+export async function markAllRead(req, res) {
   try {
     await Notification.updateMany(
       { user_id: req.user.id, is_read: false },
@@ -32,9 +28,9 @@ router.post("/read-all", authenticateToken, async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: "Failed to update notifications", error: err.message });
   }
-});
+}
 
-router.post("/trigger", authenticateToken, async (req, res) => {
+export async function createNotification(req, res) {
   const { message, type } = req.body;
   if (!message) {
     return res.status(400).json({ message: "Message is required" });
@@ -56,6 +52,4 @@ router.post("/trigger", authenticateToken, async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: "Failed to trigger notification", error: err.message });
   }
-});
-
-export default router;
+}

@@ -11,7 +11,7 @@ export async function apiFetch<T>(
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  // Force all API calls to go through the Vite dev proxy on the same origin (port 8080)
+  // Force all API calls to go through the Vite dev proxy on the same origin
   // If the caller accidentally passes an absolute backend URL, strip it.
   const normalizedEndpoint = endpoint
     .replace(/^https?:\/\/[^/]+/i, "")

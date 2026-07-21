@@ -1,13 +1,8 @@
-import express from "express";
 import MealPlan from "../models/MealPlan.js";
-import { authenticateToken } from "../middleware/authMiddleware.js";
 
-const router = express.Router();
-
-router.get("/", authenticateToken, async (req, res) => {
+export async function getMeals(req, res) {
   try {
-    const rows = await MealPlan.find({ user_id: req.user.id })
-      .select("slot_key name emoji uses_count");
+    const rows = await MealPlan.find({ user_id: req.user.id }).select("slot_key name emoji uses_count");
 
     const map = {};
     rows.forEach((r) => {
@@ -17,9 +12,9 @@ router.get("/", authenticateToken, async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch meal plans", error: err.message });
   }
-});
+}
 
-router.post("/", authenticateToken, async (req, res) => {
+export async function saveMeal(req, res) {
   const { slotKey, name, emoji, uses } = req.body;
   if (!slotKey || !name) {
     return res.status(400).json({ message: "Missing slotKey or meal name" });
@@ -36,6 +31,4 @@ router.post("/", authenticateToken, async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: "Failed to save meal plan", error: err.message });
   }
-});
-
-export default router;
+}

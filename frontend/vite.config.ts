@@ -27,11 +27,12 @@ export default defineConfig(({ command, mode }) => {
       ignoreOutdatedRequests: true
     },
     server: {
-      host: "::",
+      host: true,
       port: 8080,
+      strictPort: true,
       proxy: {
         "/api": {
-          target: "http://localhost:5000",
+          target: "http://localhost:3000",
           changeOrigin: true,
           secure: false,
         }

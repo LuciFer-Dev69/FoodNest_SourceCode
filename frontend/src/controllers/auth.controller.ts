@@ -7,9 +7,6 @@ import { useNavigate } from "@tanstack/react-router";
 export function useAuthController() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [requires2FA, setRequires2FA] = useState(false);
-  const [userId2FA, setUserId2FA] = useState<number | null>(null);
-  const [totpCode, setTotpCode] = useState("");
 
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -56,11 +53,7 @@ export function useAuthController() {
       setLoading(true);
       const res = await api.post<AuthResponse>("/api/auth/login", { email, password });
       
-      if (res.requires2FA) {
-        setRequires2FA(true);
-        setUserId2FA(res.userId || null);
-        toast.info("2FA is enabled. Please enter verification code.");
-      } else if (res.token) {
+      if (res.token) {
         localStorage.setItem("token", res.token);
         toast.success(`Welcome back, ${res.user?.name}!`);
         navigate({ to: "/app/dashboard" });
@@ -72,40 +65,10 @@ export function useAuthController() {
     }
   };
 
-  const handleVerify2FA = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!totpCode || !userId2FA) {
-      toast.error("Please enter the 2FA code");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const res = await api.post<AuthResponse>("/api/auth/verify-2fa", {
-        userId: userId2FA,
-        code: totpCode
-      });
-
-      if (res.token) {
-        localStorage.setItem("token", res.token);
-        toast.success(`Welcome back, ${res.user?.name}!`);
-        navigate({ to: "/app/dashboard" });
-      }
-    } catch (err: any) {
-      toast.error(err.message || "Invalid 2FA code");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return {
     loading,
-    requires2FA,
-    totpCode,
-    setTotpCode,
     handleRegister,
     handleLogin,
-    handleVerify2FA,
   };
 }
 export type AuthController = ReturnType<typeof useAuthController>;

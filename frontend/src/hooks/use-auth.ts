@@ -7,7 +7,7 @@
 import { useMemo, useCallback } from "react";
 
 export interface AuthUser {
-  id: number;
+  id: string;
   name: string;
   email: string;
 }

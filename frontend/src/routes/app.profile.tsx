@@ -17,16 +17,13 @@ function Profile() {
   const [name, setName] = useState(user?.name || "");
   const [saving, setSaving] = useState(false);
   const [profileData, setProfileData] = useState<{
-    twoFactorEnabled?: boolean;
     email?: string;
     createdAt?: string;
   }>({});
 
   useEffect(() => {
     api
-      .get<{ twoFactorEnabled: boolean; email: string; createdAt: string }>(
-        "/api/auth/profile"
-      )
+      .get<{ email: string; createdAt: string }>("/api/auth/profile")
       .then((data) => {
         setProfileData(data);
         setName(data.email ? name || user?.name || "" : user?.name || "");
@@ -105,11 +102,6 @@ function Profile() {
             <span className="rounded-full bg-success/15 px-2.5 py-1 text-xs font-semibold text-success">
               Verified
             </span>
-            {profileData.twoFactorEnabled && (
-              <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary">
-                2FA on
-              </span>
-            )}
           </div>
         </Panel>
 

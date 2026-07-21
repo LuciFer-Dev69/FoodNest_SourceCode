@@ -1,11 +1,7 @@
-import express from "express";
 import Donation from "../models/Donation.js";
 import User from "../models/User.js";
-import { authenticateToken } from "../middleware/authMiddleware.js";
 
-const router = express.Router();
-
-router.get("/", authenticateToken, async (req, res) => {
+export async function getDonations(req, res) {
   try {
     const rows = await Donation.find({ status: "Available" })
       .populate("donor_id", "name")
@@ -25,9 +21,9 @@ router.get("/", authenticateToken, async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: "Failed to load donations", error: err.message });
   }
-});
+}
 
-router.post("/", authenticateToken, async (req, res) => {
+export async function createDonation(req, res) {
   const { name, emoji, qty, cat, pickup } = req.body;
   if (!name || !qty || !cat || !pickup) {
     return res.status(400).json({ message: "Missing donation details" });
@@ -42,7 +38,6 @@ router.post("/", authenticateToken, async (req, res) => {
 
       const existing = await Donation.find({ cat, name, pickup_time: pickup }, "donor_id");
       const existingDonors = new Set(existing.map((r) => r.donor_id.toString()));
-
       const missingUsers = users.filter((u) => !existingDonors.has(u._id.toString()));
 
       let lastInsertId = null;
@@ -101,9 +96,9 @@ router.post("/", authenticateToken, async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: "Failed to post donation", error: err.message });
   }
-});
+}
 
-router.get("/history", authenticateToken, async (req, res) => {
+export async function getHistory(req, res) {
   try {
     const rows = await Donation.find({ claimant_id: req.user.id, status: "Claimed" })
       .select("name emoji qty cat pickup_time status km created_at claimant_id")
@@ -122,9 +117,9 @@ router.get("/history", authenticateToken, async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: "Failed to load donation history", error: err.message });
   }
-});
+}
 
-router.put("/:id/claim", authenticateToken, async (req, res) => {
+export async function claimDonation(req, res) {
   try {
     const result = await Donation.findOneAndUpdate(
       { _id: req.params.id, status: "Available" },
@@ -140,6 +135,4 @@ router.put("/:id/claim", authenticateToken, async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: "Failed to claim donation", error: err.message });
   }
-});
-
-export default router;
+}
