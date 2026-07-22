@@ -2,10 +2,18 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import {
   ArrowRight, Package, HeartHandshake, BarChart3, CalendarDays, Bell, ShieldCheck,
-  Sparkles, Leaf, Globe2, Star, Plus, Minus,
+  Sparkles, Globe2, Star, Plus, Minus,
 } from "lucide-react";
-import { useState } from "react";
-import { GlassNav, HeroDecor } from "@/components/site/GlassNav";
+import { useState, useEffect } from "react";
+import type { ReactNode } from "react";
+import { GlassNav } from "@/components/site/GlassNav";
+
+const IMG = {
+  hero: "/images/home-page/home-page1.jpg",
+  features: "/images/home-page/home-page2.jpg",
+  how: "/images/home-page/home-page3.jpg",
+  cta: "/images/home-page/home-page4.jpg",
+};
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -36,123 +44,114 @@ function Landing() {
   );
 }
 
-function Hero() {
+function BgSection({ image, children }: { image: string; children: ReactNode }) {
   return (
-    <section className="relative pt-40 pb-28 md:pt-48 md:pb-36">
-      <HeroDecor />
-      <div className="relative mx-auto max-w-6xl px-6 text-center">
-        <motion.span
-          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-          className="glass inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold text-foreground/80"
-        >
-          <Sparkles className="h-3.5 w-3.5 text-primary" />
-          New · AI meal suggestions from what's already in your kitchen
-        </motion.span>
-        <motion.h1
-          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }}
-          className="mx-auto mt-6 max-w-4xl text-5xl font-extrabold leading-[1.05] tracking-tight md:text-7xl"
-        >
-          Reduce food waste. <br className="hidden md:block" />
-          <span className="gradient-text">Feed more people.</span>
-        </motion.h1>
-        <motion.p
-          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}
-          className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground md:text-xl"
-        >
-          FoodNest is the intelligent kitchen co-pilot that tracks what you own, plans meals around it,
-          and connects surplus food to neighbours who need it.
-        </motion.p>
-        <motion.div
-          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.3 }}
-          className="mt-9 flex flex-wrap items-center justify-center gap-3"
-        >
-          <Link to="/register" className="group inline-flex items-center gap-2 rounded-full bg-gradient-primary px-6 py-3.5 text-sm font-semibold text-white shadow-lift transition hover:translate-y-[-1px]">
-            Start saving food free
-            <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
-          </Link>
-          <a href="#how" className="rounded-full glass px-6 py-3.5 text-sm font-semibold text-foreground/90 hover:bg-secondary">
-            See how it works
-          </a>
-        </motion.div>
-
-        {/* Floating product preview */}
-        <motion.div
-          initial={{ opacity: 0, y: 40, scale: 0.97 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-          className="relative mx-auto mt-16 max-w-5xl"
-        >
-          <div className="glass-card rounded-3xl p-3 shadow-lift">
-            <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-background to-secondary p-6 text-left">
-              <div className="grid gap-4 md:grid-cols-3">
-                {[
-                  { l: "Food saved", v: "128 kg", d: "+12% this month", icon: <Leaf className="h-4 w-4" /> },
-                  { l: "Items expiring", v: "7", d: "use within 3 days", icon: <Bell className="h-4 w-4" />, warn: true },
-                  { l: "Donations claimed", v: "24", d: "by 9 neighbours", icon: <HeartHandshake className="h-4 w-4" /> },
-                ].map((c, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-                    transition={{ delay: 0.1 * i, duration: 0.5 }}
-                    className="glass-card rounded-2xl p-4"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{c.l}</span>
-                      <span className={`grid h-8 w-8 place-items-center rounded-xl ${c.warn ? "bg-warning/20 text-warning" : "bg-primary/15 text-primary"}`}>
-                        {c.icon}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-2xl font-bold">{c.v}</p>
-                    <p className="text-xs text-muted-foreground">{c.d}</p>
-                  </motion.div>
-                ))}
-              </div>
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <div className="glass-card rounded-2xl p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Weekly waste reduction</p>
-                  <div className="mt-3 flex h-28 items-end gap-2">
-                    {[40, 55, 35, 70, 60, 85, 92].map((h, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ height: 0 }}
-                        whileInView={{ height: `${h}%` }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.6, delay: 0.05 * i, ease: [0.2, 0.8, 0.2, 1] }}
-                        className="flex-1 rounded-t-lg bg-gradient-primary"
-                      />
-                    ))}
-                  </div>
-                </div>
-                <div className="glass-card rounded-2xl p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Today's smart suggestions</p>
-                  <ul className="mt-3 space-y-2 text-sm">
-                    {["Spinach & feta pasta — uses 4 expiring items", "Tomato soup — uses 2 items", "Banana oat pancakes — uses 3 items"].map((t, i) => (
-                      <li key={i} className="flex items-center gap-2 rounded-xl bg-background/60 px-3 py-2">
-                        <span className="h-2 w-2 rounded-full bg-primary" />
-                        <span className="font-medium">{t}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="pointer-events-none absolute -inset-x-20 -bottom-20 -z-10 h-40 rounded-[100%] bg-primary/20 blur-3xl" />
-        </motion.div>
+    <section className="relative overflow-hidden">
+      <div className="absolute inset-0">
+        <img src={image} alt="" className="h-full w-full object-cover" />
       </div>
+      <div className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/70 to-white/85" />
+      <div className="absolute inset-0 bg-gradient-to-br from-[oklch(0.95_0.03_145/0.15)] via-transparent to-[oklch(0.9_0.05_130/0.1)]" />
+      <div className="relative z-10">{children}</div>
     </section>
   );
 }
 
-function LiveStats() {
-  const items = [
-    { v: "2.4M", l: "Meals saved" },
-    { v: "180T", l: "Food rescued" },
-    { v: "48K", l: "Active households" },
-    { v: "92%", l: "Less weekly waste" },
-  ];
+function useReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduced(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setReduced(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return reduced;
+}
+
+function Hero() {
+  const reducedMotion = useReducedMotion();
+
   return (
-    <section className="mx-auto max-w-6xl px-6">
+    <section className="relative flex min-h-dvh items-center overflow-hidden">
+      <div className="absolute inset-0">
+        <img src={IMG.hero} alt="" className="h-full w-full object-cover" />
+      </div>
+
+      <div className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/70 to-white/85" />
+      <div className="absolute inset-0 bg-gradient-to-br from-[oklch(0.95_0.03_145/0.15)] via-transparent to-[oklch(0.9_0.05_130/0.1)]" />
+
+      <div className="relative mx-auto flex w-full max-w-6xl flex-col items-center justify-center px-6 py-32 md:py-40">
+        <div className="w-full max-w-2xl text-center">
+          <div className="glass inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold text-foreground/80">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            New · AI meal suggestions from what's already in your kitchen
+          </div>
+
+          <h1 className="mt-6 text-5xl font-extrabold leading-[1.05] tracking-tight md:text-7xl">
+            Reduce food waste. <br className="hidden md:block" />
+            <span className="gradient-text">Feed more people.</span>
+          </h1>
+
+          <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground md:text-xl">
+            FoodNest is the intelligent kitchen co-pilot that tracks what you own, plans meals around it,
+            and connects surplus food to neighbours who need it.
+          </p>
+
+          <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              to="/register"
+              className="group inline-flex items-center gap-2 rounded-full bg-gradient-primary px-6 py-3.5 text-sm font-semibold text-white shadow-lift transition-all duration-300 hover:scale-[1.03] hover:shadow-xl"
+            >
+              Start saving food free
+              <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+            </Link>
+            <a
+              href="#how"
+              className="rounded-full border border-border/60 bg-white/70 px-6 py-3.5 text-sm font-semibold text-foreground/90 backdrop-blur transition-all duration-300 hover:bg-white/90 hover:shadow-soft"
+            >
+              See how it works
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <motion.a
+        href="#stats"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.5, duration: 0.8 }}
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+      >
+        <span className="text-[10px] font-medium uppercase tracking-widest">Scroll</span>
+        <div className="relative h-8 w-5 rounded-full border-2 border-current">
+          <motion.div
+            animate={reducedMotion ? {} : { y: [0, 10, 0] }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+            className="mx-auto mt-1.5 h-2 w-1 rounded-full bg-current"
+          />
+        </div>
+      </motion.a>
+    </section>
+  );
+}
+
+type LiveStatItem = {
+  value: string;
+  label: string;
+};
+
+function LiveStats({ stats }: { stats?: LiveStatItem[] }) {
+  const defaultStats: LiveStatItem[] = [
+    { value: "2.4M", label: "Meals saved" },
+    { value: "180T", label: "Food rescued" },
+    { value: "48K", label: "Active households" },
+    { value: "92%", label: "Less weekly waste" },
+  ];
+  const items = stats || defaultStats;
+
+  return (
+    <section id="stats" className="mx-auto max-w-6xl px-6">
       <div className="glass-card grid grid-cols-2 gap-2 rounded-3xl p-2 md:grid-cols-4">
         {items.map((s, i) => (
           <motion.div
@@ -160,8 +159,8 @@ function LiveStats() {
             transition={{ delay: 0.05 * i }}
             className="rounded-2xl p-5 text-center"
           >
-            <p className="text-3xl font-bold tracking-tight gradient-text">{s.v}</p>
-            <p className="mt-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">{s.l}</p>
+            <p className="text-3xl font-bold tracking-tight gradient-text">{s.value}</p>
+            <p className="mt-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">{s.label}</p>
           </motion.div>
         ))}
       </div>
@@ -179,25 +178,27 @@ function Features() {
     { i: ShieldCheck, t: "Privacy & 2FA", d: "JWT auth, bcrypt and TOTP-based two-factor. Your kitchen stays yours." },
   ];
   return (
-    <section id="features" className="mx-auto max-w-6xl px-6 py-28">
-      <SectionTitle eyebrow="Features" title="Everything your kitchen needs." subtitle="One calm, fast, beautifully designed surface for your food." />
-      <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {items.map((f, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-50px" }}
-            transition={{ duration: 0.5, delay: i * 0.05 }}
-            className="glass-card hover-lift rounded-3xl p-6"
-          >
-            <span className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-primary text-white shadow-soft">
-              <f.i className="h-5 w-5" />
-            </span>
-            <h3 className="mt-4 text-lg font-bold">{f.t}</h3>
-            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{f.d}</p>
-          </motion.div>
-        ))}
-      </div>
-    </section>
+    <BgSection image={IMG.features}>
+      <section id="features" className="mx-auto max-w-6xl px-6 py-28">
+        <SectionTitle eyebrow="Features" title="Everything your kitchen needs." subtitle="One calm, fast, beautifully designed surface for your food." />
+        <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {items.map((f, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.5, delay: i * 0.05 }}
+              className="glass-card hover-lift rounded-3xl p-6"
+            >
+              <span className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-primary text-white shadow-soft">
+                <f.i className="h-5 w-5" />
+              </span>
+              <h3 className="mt-4 text-lg font-bold">{f.t}</h3>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{f.d}</p>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+    </BgSection>
   );
 }
 
@@ -208,22 +209,24 @@ function HowItWorks() {
     { n: "03", t: "Donate the surplus", d: "List anything you can't use. Neighbours nearby claim it for pickup, with everyone in the loop." },
   ];
   return (
-    <section id="how" className="mx-auto max-w-6xl px-6 py-28">
-      <SectionTitle eyebrow="How it works" title="From fridge to fork — without the waste." />
-      <div className="mt-12 grid gap-4 md:grid-cols-3">
-        {steps.map((s, i) => (
-          <motion.div
-            key={i} initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: i * 0.1 }}
-            className="glass-card relative overflow-hidden rounded-3xl p-7"
-          >
-            <span className="text-sm font-bold tracking-wider text-primary">{s.n}</span>
-            <h3 className="mt-3 text-2xl font-bold">{s.t}</h3>
-            <p className="mt-2 text-sm text-muted-foreground">{s.d}</p>
-          </motion.div>
-        ))}
-      </div>
-    </section>
+    <BgSection image={IMG.how}>
+      <section id="how" className="mx-auto max-w-6xl px-6 py-28">
+        <SectionTitle eyebrow="How it works" title="From fridge to fork — without the waste." />
+        <div className="mt-12 grid gap-4 md:grid-cols-3">
+          {steps.map((s, i) => (
+            <motion.div
+              key={i} initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: i * 0.1 }}
+              className="glass-card relative overflow-hidden rounded-3xl p-7"
+            >
+              <span className="text-sm font-bold tracking-wider text-primary">{s.n}</span>
+              <h3 className="mt-3 text-2xl font-bold">{s.t}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{s.d}</p>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+    </BgSection>
   );
 }
 
@@ -349,29 +352,31 @@ function FAQ() {
 
 function CTA() {
   return (
-    <section className="mx-auto max-w-6xl px-6 pb-28">
-      <div className="glass-card relative overflow-hidden rounded-[2rem] p-10 md:p-16">
-        <div className="absolute inset-0 -z-10 bg-gradient-primary opacity-90" />
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(800px_300px_at_20%_0%,rgba(255,255,255,0.35),transparent)]" />
-        <div className="max-w-2xl text-white">
-          <Globe2 className="h-8 w-8" />
-          <h2 className="mt-4 text-4xl font-extrabold leading-tight md:text-5xl">
-            Your kitchen, but kinder to the planet.
-          </h2>
-          <p className="mt-3 text-white/90">
-            Join thousands of households cutting food waste, saving money and feeding neighbours every week.
-          </p>
-          <div className="mt-7 flex flex-wrap gap-3">
-            <Link to="/register" className="rounded-full bg-white px-6 py-3.5 text-sm font-bold text-primary shadow-lift hover:translate-y-[-1px] transition">
-              Create your free account
-            </Link>
-            <Link to="/login" className="rounded-full border border-white/40 bg-white/10 px-6 py-3.5 text-sm font-semibold text-white backdrop-blur hover:bg-white/20">
-              Sign in
-            </Link>
+    <BgSection image={IMG.cta}>
+      <section className="mx-auto max-w-6xl px-6 py-28">
+        <div className="glass-card relative overflow-hidden rounded-[2rem] p-10 md:p-16">
+          <div className="absolute inset-0 -z-10 bg-gradient-primary opacity-90" />
+          <div className="absolute inset-0 -z-10 bg-[radial-gradient(800px_300px_at_20%_0%,rgba(255,255,255,0.35),transparent)]" />
+          <div className="max-w-2xl text-white">
+            <Globe2 className="h-8 w-8" />
+            <h2 className="mt-4 text-4xl font-extrabold leading-tight md:text-5xl">
+              Your kitchen, but kinder to the planet.
+            </h2>
+            <p className="mt-3 text-white/90">
+              Join thousands of households cutting food waste, saving money and feeding neighbours every week.
+            </p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Link to="/register" className="rounded-full bg-white px-6 py-3.5 text-sm font-bold text-primary shadow-lift hover:translate-y-[-1px] transition">
+                Create your free account
+              </Link>
+              <Link to="/login" className="rounded-full border border-white/40 bg-white/10 px-6 py-3.5 text-sm font-semibold text-white backdrop-blur hover:bg-white/20">
+                Sign in
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </BgSection>
   );
 }
 
@@ -381,7 +386,11 @@ function Footer() {
       <div className="mx-auto grid max-w-6xl gap-8 px-6 py-12 md:grid-cols-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="grid h-8 w-8 place-items-center rounded-2xl bg-gradient-primary text-white"><Leaf className="h-4 w-4" /></span>
+            <img
+              src="/images/logo.png"
+              alt="FoodNest"
+              className="h-8 w-8 shrink-0 rounded-2xl object-cover"
+            />
             <span className="font-bold">FoodNest</span>
           </div>
           <p className="mt-3 text-sm text-muted-foreground">Reduce waste. Feed people. Cook better.</p>

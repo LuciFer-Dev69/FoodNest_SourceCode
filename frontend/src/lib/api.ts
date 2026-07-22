@@ -1,6 +1,8 @@
+import { getStoredToken } from "./auth-storage";
+
 // Simple API client wrapping fetch to make requests to /api
 export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const token = typeof window !== "undefined" ? getStoredToken() : null;
 
   const headers = new Headers(options.headers || {});
   if (token) {

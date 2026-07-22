@@ -1,9 +1,9 @@
 import { motion, AnimatePresence } from "motion/react";
 import { useState } from "react";
 import {
-  Sparkles, Save, ChevronLeft, ChevronRight, Plus, Trash2, Copy, RotateCcw,
+  Sparkles, Save, ChevronDown, ChevronLeft, ChevronRight, Plus, Trash2, Copy, RotateCcw,
   Check, SkipForward, X, Heart, Search, ShoppingCart, Clock, Globe,
-  BookMarked, LayoutGrid, List, ArrowUpDown,
+  BookMarked, LayoutGrid, List, ArrowUpDown, AlertTriangle,
 } from "lucide-react";
 import { PageHeader, Panel } from "@/components/app/primitives";
 import type { PlannerController } from "@/controllers/planner.controller";
@@ -34,7 +34,7 @@ function QuickActions({ onEdit, onDuplicate, onDelete, onMove, onFavorite, isFav
   );
 }
 
-function MealCard({ slotKey, meal, onEdit, onDuplicate, onDelete, onStatusChange, onFavorite, isFav, onMoveTo }) {
+function MealCard({ slotKey, meal, onEdit, onDuplicate, onDelete, onStatusChange, onFavorite, isFav, onMoveTo, onDragStart }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   if (!meal || !meal.name) return null;
@@ -42,6 +42,12 @@ function MealCard({ slotKey, meal, onEdit, onDuplicate, onDelete, onStatusChange
   return (
     <motion.div
       layout
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData("text/plain", slotKey);
+        e.dataTransfer.effectAllowed = "move";
+        onDragStart?.(slotKey);
+      }}
       initial={{ scale: 0.9, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       className={`relative flex h-full flex-col rounded-xl bg-gradient-emerald p-2 text-white ${STATUS_BG[meal.status]} border ${meal.status !== "planned" ? "border-current" : "border-transparent"}`}
@@ -133,6 +139,7 @@ export function PlannerView({
   handleEditMeal,
   handleSaveEdit,
   handleDeleteMeal,
+  clearAllMeals,
   handleDuplicateMeal,
   handleClearMeal,
   handleMoveMeal,
@@ -146,6 +153,22 @@ export function PlannerView({
   const [moveFrom, setMoveFrom] = useState<string | null>(null);
   const [moveTo, setMoveTo] = useState<string | null>(null);
   const [showMovePicker, setShowMovePicker] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showEmptyGrid, setShowEmptyGrid] = useState(false);
+  const [pendingReplace, setPendingReplace] = useState<{ slotKey: string; name: string; emoji: string } | null>(null);
+
+  function getSlot(slotKey: string) {
+    return plan.find((m) => m.slotKey === slotKey);
+  }
+
+  function onAddMealWithCheck(slotKey: string, meal: { name: string; emoji: string }) {
+    const existing = getSlot(slotKey);
+    if (existing?.name) {
+      setPendingReplace({ slotKey, ...meal });
+      return;
+    }
+    handleAddMeal(slotKey, meal);
+  }
 
   function getSlot(slotKey: string) {
     return plan.find((m) => m.slotKey === slotKey);
@@ -242,6 +265,12 @@ export function PlannerView({
               <Sparkles className="h-4 w-4" /> Generate Random Plan
             </button>
             <button
+              onClick={() => setShowClearConfirm(true)}
+              className="inline-flex items-center gap-2 rounded-full border border-destructive/30 px-4 py-2 text-sm font-semibold text-destructive hover:bg-destructive/5"
+            >
+              <Trash2 className="h-4 w-4" /> Clear All
+            </button>
+            <button
               onClick={savePlan}
               disabled={saving}
               className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-600 to-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-soft hover:shadow-lift disabled:opacity-50"
@@ -252,7 +281,7 @@ export function PlannerView({
         }
       />
 
-      {plannedCount === 0 && !loading ? (
+      {plannedCount === 0 && !loading && !showEmptyGrid ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <div className="grid h-24 w-24 place-items-center rounded-full bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 text-emerald-500 mb-5">
             <CalendarPlus className="h-12 w-12" />
@@ -269,7 +298,7 @@ export function PlannerView({
               <Sparkles className="h-4 w-4" /> Generate Random Plan
             </button>
             <button
-              onClick={() => setQuickAddOpen("Mon-Breakfast")}
+              onClick={() => setShowEmptyGrid(true)}
               className="inline-flex items-center gap-2 rounded-full bg-background/70 px-6 py-3 text-sm font-semibold text-foreground shadow-soft hover:shadow-lift border border-border"
             >
               <Plus className="h-4 w-4" /> Create Manually
@@ -310,6 +339,12 @@ export function PlannerView({
                     return (
                       <div
                         key={key}
+                        onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const src = e.dataTransfer.getData("text/plain");
+                          if (src && src !== key) handleMoveMeal(src, key);
+                        }}
                         className={`relative min-h-[100px] rounded-2xl border border-dashed p-2 transition ${
                           moveFrom === key ? "border-primary bg-primary/10" :
                           moveTo === key ? "border-emerald-500 bg-emerald-500/10" :
@@ -424,7 +459,7 @@ export function PlannerView({
                       className="rounded-2xl bg-background/70 p-3 text-sm hover:bg-background/90 cursor-pointer transition"
                       onClick={() => {
                         if (quickAddOpen) {
-                          handleAddMeal(quickAddOpen, { name: s.name, emoji: s.emoji });
+                          onAddMealWithCheck(quickAddOpen, { name: s.name, emoji: s.emoji });
                         }
                       }}
                     >
@@ -583,6 +618,9 @@ export function PlannerView({
                 <h3 className="text-lg font-bold">Add meal — {quickAddOpen}</h3>
                 <button onClick={() => setQuickAddOpen(null)} className="grid h-8 w-8 place-items-center rounded-xl hover:bg-secondary"><X className="h-4 w-4" /></button>
               </div>
+
+              <QuickAddMakeOwn onAdd={(name, emoji) => onAddMealWithCheck(quickAddOpen, { name, emoji })} />
+
               <div className="flex items-center gap-2 rounded-2xl border border-border bg-background/70 px-3 py-2 mb-3">
                 <Search className="h-4 w-4 text-muted-foreground shrink-0" />
                 <input
@@ -604,12 +642,12 @@ export function PlannerView({
                   </button>
                 ))}
               </div>
-              <div className="space-y-1 max-h-60 overflow-y-auto">
+              <div className="space-y-1 max-h-48 overflow-y-auto">
                 {searchResults.length === 0 && suggestions.length > 0 ? (
                   suggestions.slice(0, 8).map((s) => (
                     <button
                       key={s.name}
-                      onClick={() => handleAddMeal(quickAddOpen, { name: s.name, emoji: s.emoji })}
+                      onClick={() => onAddMealWithCheck(quickAddOpen, { name: s.name, emoji: s.emoji })}
                       className="flex w-full items-center gap-2 rounded-2xl bg-background/50 p-2 text-sm hover:bg-background/80 text-left"
                     >
                       <span className="text-lg">{s.emoji}</span>
@@ -621,7 +659,7 @@ export function PlannerView({
                   searchResults.map((r) => (
                     <button
                       key={r.name}
-                      onClick={() => handleAddMeal(quickAddOpen, { name: r.name, emoji: r.emoji || "🍽️" })}
+                      onClick={() => onAddMealWithCheck(quickAddOpen, { name: r.name, emoji: r.emoji || "🍽️" })}
                       className="flex w-full items-center gap-2 rounded-2xl bg-background/50 p-2 text-sm hover:bg-background/80 text-left"
                     >
                       <span className="text-lg">{r.emoji}</span>
@@ -631,7 +669,7 @@ export function PlannerView({
                 )}
                 {searchResults.length === 0 && searchQuery && (
                   <button
-                    onClick={() => handleAddMeal(quickAddOpen, { name: searchQuery.trim(), emoji: "🍽️" })}
+                    onClick={() => onAddMealWithCheck(quickAddOpen, { name: searchQuery.trim(), emoji: "🍽️" })}
                     className="flex w-full items-center gap-2 rounded-2xl bg-primary/10 p-2 text-sm hover:bg-primary/20 text-left"
                   >
                     <Plus className="h-4 w-4 text-primary" />
@@ -639,9 +677,115 @@ export function PlannerView({
                   </button>
                 )}
               </div>
+
+              {searchResults.length === 0 && !searchQuery && (
+                <>
+                  <CategorySection
+                    title="🌿 Vegetarian"
+                    items={VEGETARIAN_ITEMS}
+                    onSelect={(name, emoji) => onAddMealWithCheck(quickAddOpen, { name, emoji })}
+                  />
+                  <CategorySection
+                    title="💪 Healthy"
+                    items={HEALTHY_ITEMS}
+                    onSelect={(name, emoji) => onAddMealWithCheck(quickAddOpen, { name, emoji })}
+                  />
+                </>
+              )}
             </motion.div>
           </motion.div>
         )}
+      </AnimatePresence>
+
+      {/* Clear All Confirmation */}
+      <AnimatePresence>
+        {showClearConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 grid place-items-center bg-foreground/30 backdrop-blur-sm"
+            onClick={() => setShowClearConfirm(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              className="glass-card mx-4 max-w-sm rounded-3xl p-6 text-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <AlertTriangle className="mx-auto h-10 w-10 text-destructive" />
+              <h3 className="mt-4 text-lg font-bold">Clear all meals?</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                This will remove {plannedCount} meal{plannedCount !== 1 ? "s" : ""} from this week's plan.
+                You can undo this by not saving before leaving.
+              </p>
+              <div className="mt-6 flex items-center justify-center gap-3">
+                <button
+                  onClick={() => setShowClearConfirm(false)}
+                  className="rounded-full border border-border px-5 py-2.5 text-sm font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => { clearAllMeals(); setShowClearConfirm(false); }}
+                  className="rounded-full bg-destructive px-5 py-2.5 text-sm font-semibold text-white"
+                >
+                  Yes, clear all
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Replace Confirmation */}
+      <AnimatePresence>
+        {pendingReplace && (() => {
+          const existing = getSlot(pendingReplace.slotKey);
+          return (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 grid place-items-center bg-foreground/30 backdrop-blur-sm"
+              onClick={() => setPendingReplace(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                transition={{ duration: 0.18 }}
+                className="glass-card mx-4 max-w-sm rounded-3xl p-6 text-center"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <AlertTriangle className="mx-auto h-10 w-10 text-amber-500" />
+                <h3 className="mt-4 text-lg font-bold">Replace existing meal?</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  This slot already has <strong>{existing?.name || "a meal"}</strong>. Replace it?
+                </p>
+                <div className="mt-6 flex items-center justify-center gap-3">
+                  <button
+                    onClick={() => setPendingReplace(null)}
+                    className="rounded-full border border-border px-5 py-2.5 text-sm font-semibold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleAddMeal(pendingReplace.slotKey, { name: pendingReplace.name, emoji: pendingReplace.emoji });
+                      setPendingReplace(null);
+                    }}
+                    className="rounded-full bg-destructive px-5 py-2.5 text-sm font-semibold text-white"
+                  >
+                    Replace
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
       </AnimatePresence>
 
       {/* Saved Plans Modal */}
@@ -858,6 +1002,123 @@ export function PlannerView({
         )}
       </AnimatePresence>
     </>
+  );
+}
+
+const VEGETARIAN_ITEMS = [
+  { name: "Garden Salad", emoji: "🥗" },
+  { name: "Veggie Pasta", emoji: "🍝" },
+  { name: "Lentil Soup", emoji: "🫘" },
+  { name: "Broccoli Stir-fry", emoji: "🥦" },
+  { name: "Falafel Wrap", emoji: "🧆" },
+  { name: "Vegetable Curry", emoji: "🍛" },
+  { name: "Stuffed Peppers", emoji: "🫔" },
+  { name: "Veggie Dumplings", emoji: "🥟" },
+  { name: "Mushroom Risotto", emoji: "🍄" },
+  { name: "Bean Burrito", emoji: "🌯" },
+];
+
+const HEALTHY_ITEMS = [
+  { name: "Avocado Toast", emoji: "🥑" },
+  { name: "Berry Smoothie", emoji: "🫐" },
+  { name: "Kale Caesar", emoji: "🥬" },
+  { name: "Grilled Chicken", emoji: "🥩" },
+  { name: "Quinoa Bowl", emoji: "🥣" },
+  { name: "Salmon Plate", emoji: "🐟" },
+  { name: "Rainbow Salad", emoji: "🥕" },
+  { name: "Brown Rice Bowl", emoji: "🍚" },
+  { name: "Almond Crunch", emoji: "🥜" },
+  { name: "Zucchini Noodles", emoji: "🥒" },
+];
+
+const QUICK_EMOJIS = ["🍽️", "🥗", "🍝", "🍛", "🌯", "🥪", "🥘", "🍲", "🥣", "🥗", "🥑", "🥬", "🥩", "🐟", "🫐", "🥟", "🧆", "🍄", "🥦", "🫘"];
+
+function QuickAddMakeOwn({ onAdd }: { onAdd: (name: string, emoji: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [emoji, setEmoji] = useState("🍽️");
+
+  const handleAdd = () => {
+    if (!name.trim()) return;
+    onAdd(name.trim(), emoji);
+    setName("");
+    setEmoji("🍽️");
+    setOpen(false);
+  };
+
+  return (
+    <div className="mb-3">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center gap-2 rounded-2xl bg-secondary/50 px-3 py-2 text-sm font-semibold hover:bg-secondary/80"
+      >
+        <ChevronDown className={`h-4 w-4 transition ${open ? "" : "-rotate-90"}`} />
+        Make Your Own Recipe
+      </button>
+      {open && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          className="mt-2 space-y-2 overflow-hidden"
+        >
+          <div className="flex items-center gap-2 rounded-2xl border border-border bg-background/70 px-3 py-2">
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Recipe name"
+              className="w-full bg-transparent text-sm outline-none"
+              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              value={emoji}
+              onChange={(e) => setEmoji(e.target.value || "🍽️")}
+              className="w-10 rounded-xl border border-border bg-background/70 px-2 py-2 text-center text-lg outline-none"
+            />
+            <span className="text-[11px] text-muted-foreground">Pick an emoji</span>
+            <button
+              onClick={handleAdd}
+              disabled={!name.trim()}
+              className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-gradient-primary px-4 py-2 text-xs font-semibold text-white shadow-soft hover:shadow-lift disabled:opacity-50"
+            >
+              <Plus className="h-3.5 w-3.5" /> Add to plan
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {QUICK_EMOJIS.map((e) => (
+              <button
+                key={e}
+                onClick={() => setEmoji(e)}
+                className={`rounded-lg px-1.5 py-1 text-base transition hover:bg-secondary ${emoji === e ? "bg-secondary ring-2 ring-primary/40" : ""}`}
+              >
+                {e}
+              </button>
+            ))}
+          </div>
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
+function CategorySection({ title, items, onSelect }: { title: string; items: { name: string; emoji: string }[]; onSelect: (name: string, emoji: string) => void }) {
+  return (
+    <div className="mt-3">
+      <p className="mb-1.5 text-xs font-semibold text-muted-foreground">{title}</p>
+      <div className="grid grid-cols-5 gap-1.5">
+        {items.map((item) => (
+          <button
+            key={item.name}
+            onClick={() => onSelect(item.name, item.emoji)}
+            className="flex flex-col items-center gap-0.5 rounded-xl bg-background/50 p-1.5 text-center hover:bg-background/80 transition"
+          >
+            <span className="text-lg">{item.emoji}</span>
+            <span className="text-[9px] font-medium leading-tight text-foreground">{item.name}</span>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 

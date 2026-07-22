@@ -10,6 +10,7 @@ const communityPostSchema = new mongoose.Schema({
     default: "Other",
   },
   images: [{ type: String }],
+  videos: [{ type: String }],
   tags: [{ type: String }],
   location: {
     type: { type: String, enum: ["Point"], default: "Point" },

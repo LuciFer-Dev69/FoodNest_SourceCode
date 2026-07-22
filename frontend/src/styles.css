@@ -194,10 +194,6 @@
 }
 .hover-lift:hover { transform: translateY(-4px); box-shadow: var(--shadow-lift); }
 
-@keyframes float-slow {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-18px) rotate(3deg); }
-}
 @keyframes pulse-ring {
   0% { transform: scale(.9); opacity: .7; }
   100% { transform: scale(1.6); opacity: 0; }
@@ -206,7 +202,6 @@
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
-.animate-float { animation: float-slow 7s ease-in-out infinite; }
 .animate-pulse-ring { animation: pulse-ring 2.4s cubic-bezier(.4,0,.6,1) infinite; }
 
 .bg-hero { background: var(--gradient-hero); }

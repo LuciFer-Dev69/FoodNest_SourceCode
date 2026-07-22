@@ -20,6 +20,7 @@ export type CommunityPost = {
   content: string;
   category: string;
   images: string[];
+  videos: string[];
   tags: string[];
   location: Location;
   pickupAvailable: boolean;

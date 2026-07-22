@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { api } from "@/lib/api";
 import { AuthResponse } from "@/models/auth.model";
+import { storeToken } from "@/lib/auth-storage";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
 
@@ -76,14 +77,14 @@ export function useAuthController() {
     }
 
     if (token) {
-      localStorage.setItem("token", token);
+      storeToken(token, true);
       toast.success(`Welcome to FoodNest, ${userName}!`);
       setLoading(false);
       navigate({ to: "/app/dashboard" });
     }
   };
 
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>, rememberMe?: boolean) => {
     e.preventDefault();
     clearErrors();
 
@@ -126,7 +127,7 @@ export function useAuthController() {
     }
 
     if (token) {
-      localStorage.setItem("token", token);
+      storeToken(token, rememberMe ?? false);
       toast.success(`Welcome back, ${userName}!`);
       setLoading(false);
       navigate({ to: "/app/dashboard" });

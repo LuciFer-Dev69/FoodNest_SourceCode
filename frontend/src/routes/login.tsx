@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useSearch, useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "motion/react";
-import { Leaf, Mail, Lock, User, ArrowRight } from "lucide-react";
+import { Mail, Lock, User, ArrowRight } from "lucide-react";
 import { useAuthController } from "@/controllers/auth.controller";
 import { HeroCarousel, type HeroSlide } from "@/components/auth/HeroCarousel";
 import { GoogleSignIn } from "@/components/auth/GoogleSignIn";
+import { getStoredToken } from "@/lib/auth-storage";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Sign in — FoodNest" }] }),
@@ -51,18 +52,30 @@ function LoginPage() {
     navigate({ to: "/login", search: { mode: newMode }, replace: true });
   };
 
-  const handleSubmit = isRegister ? handleRegister : handleLogin;
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    if (isRegister) {
+      handleRegister(e);
+    } else {
+      const form = e.currentTarget;
+      const rememberMe = (form.querySelector<HTMLInputElement>('[name="rememberMe"]')?.checked) ?? false;
+      handleLogin(e, rememberMe);
+    }
+  };
 
   const onGoogleSuccess = () => {
     navigate({ to: "/app/dashboard" });
   };
 
+  const token = typeof window !== "undefined" ? getStoredToken() : null;
+  if (token) {
+    navigate({ to: "/app/dashboard", replace: true });
+    return null;
+  }
+
   return (
     <div className="relative grid min-h-dvh lg:grid-cols-2 bg-hero">
       <Link to="/" className="absolute left-6 top-6 z-10 flex items-center gap-2">
-        <span className="grid h-9 w-9 place-items-center rounded-2xl bg-gradient-primary text-white shadow-soft">
-          <Leaf className="h-4 w-4" />
-        </span>
+        <img src="/images/logo.png" alt="FoodNest" className="h-9 w-9 shrink-0 rounded-2xl object-cover" />
         <span className="font-bold tracking-tight">FoodNest</span>
       </Link>
 
@@ -170,7 +183,7 @@ function LoginPage() {
                   )}
                   <div className="flex items-center justify-between text-sm">
                     <label className="inline-flex items-center gap-2">
-                      <input type="checkbox" className="accent-[color:var(--primary)]" /> Remember me
+                      <input type="checkbox" name="rememberMe" defaultChecked className="accent-[color:var(--primary)]" /> Remember me
                     </label>
                     <Link to="/forgot-password" className="font-medium text-primary hover:underline">
                       Forgot password?

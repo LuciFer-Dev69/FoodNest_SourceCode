@@ -1,10 +1,5 @@
-/**
- * useAuth – centralised auth state hook.
- *
- * Reads the JWT from localStorage, decodes the payload (no verification –
- * that happens on the server), and exposes helpers for the whole app.
- */
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useState, useEffect } from "react";
+import { getStoredToken, clearToken, isRemembered } from "@/lib/auth-storage";
 
 export interface AuthUser {
   id: string;
@@ -25,8 +20,16 @@ function parseJwt(token: string): AuthUser | null {
 }
 
 export function useAuth() {
+  const [, forceUpdate] = useState(0);
+
+  useEffect(() => {
+    const handler = () => forceUpdate((v) => v + 1);
+    window.addEventListener("auth-changed", handler);
+    return () => window.removeEventListener("auth-changed", handler);
+  }, []);
+
   const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    typeof window !== "undefined" ? getStoredToken() : null;
 
   const user = useMemo<AuthUser | null>(() => {
     if (!token) return null;
@@ -46,9 +49,9 @@ export function useAuth() {
   }, [user]);
 
   const logout = useCallback(() => {
-    localStorage.removeItem("token");
+    clearToken();
     window.location.href = "/login";
   }, []);
 
-  return { user, isAuthenticated, getInitials, logout, token };
+  return { user, isAuthenticated, getInitials, logout, token, isRemembered: isRemembered() };
 }

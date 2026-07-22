@@ -171,6 +171,11 @@ export function usePlannerController() {
     toast.success("Meal deleted");
   }, []);
 
+  const clearAllMeals = useCallback(() => {
+    setPlan([]);
+    toast.success("Meal plan cleared");
+  }, []);
+
   const handleDuplicateMeal = useCallback((sourceKey: string) => {
     const meal = getSlot(sourceKey);
     if (!meal || !meal.name) return;
@@ -354,6 +359,7 @@ export function usePlannerController() {
     handleEditMeal,
     handleSaveEdit,
     handleDeleteMeal,
+    clearAllMeals,
     handleDuplicateMeal,
     handleClearMeal,
     handleMoveMeal,

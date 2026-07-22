@@ -14,6 +14,7 @@ import notificationsRoutes from "./routes/notificationsRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
 import communityRoutes from "./routes/communityRoutes.js";
 import settingsRoutes from "./routes/settingsRoutes.js";
+import profileRoutes from "./routes/profileRoutes.js";
 
 dotenv.config();
 
@@ -35,6 +36,7 @@ app.use("/api/notifications", notificationsRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/community", communityRoutes);
 app.use("/api/settings", settingsRoutes);
+app.use("/api/profile", profileRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "healthy", timestamp: new Date() });
@@ -64,4 +66,3 @@ if (process.env.NODE_ENV !== "test") {
 
 export default app;
 export { server };
-

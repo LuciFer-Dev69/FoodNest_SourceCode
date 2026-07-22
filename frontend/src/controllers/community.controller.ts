@@ -95,10 +95,7 @@ export function useCommunityController() {
     try {
       let result: CommunityPost;
       if (data instanceof FormData) {
-        result = await api.post<CommunityPost>("/api/community/posts", {}, {
-          method: "POST",
-          body: data,
-        });
+        result = await api.postFormData<CommunityPost>("/api/community/posts", data);
       } else {
         result = await api.post<CommunityPost>("/api/community/posts", data as any);
       }
@@ -165,6 +162,20 @@ export function useCommunityController() {
       setPosts((prev) => prev.map((p) => p._id === postId ? { ...p, shareCount: (p.shareCount || 0) + 1 } : p));
     } catch {
       toast.error("Failed to copy link");
+    }
+  }, []);
+
+  const toggleNotInterested = useCallback(async (postId: string) => {
+    try {
+      const result = await api.post<{ notInterested: boolean }>(`/api/community/posts/${postId}/not-interested`);
+      if (result.notInterested) {
+        setPosts((prev) => prev.filter((p) => p._id !== postId));
+        toast.success("Post hidden");
+      }
+      return result.notInterested;
+    } catch (err: any) {
+      toast.error(err.message || "Failed to hide post");
+      return false;
     }
   }, []);
 
@@ -244,7 +255,7 @@ export function useCommunityController() {
     setDetailComments, setProfileData,
     fetchPosts, loadMore, clearFilters,
     createPost, updatePost, deletePost,
-    toggleLike, toggleBookmark, sharePost, reportPost,
+    toggleLike, toggleBookmark, sharePost, reportPost, toggleNotInterested,
     loadComments, createComment, deleteComment,
     loadProfile, refreshSidebar,
   };

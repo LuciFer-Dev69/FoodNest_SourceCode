@@ -1,4 +1,4 @@
-import { Link, Outlet, useLocation } from "@tanstack/react-router";
+import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   Package,
@@ -8,13 +8,12 @@ import {
   Bell,
   Settings,
   User as UserIcon,
-  Leaf,
   Search,
-  Plus,
   LifeBuoy,
   Moon,
   Sun,
   LogOut,
+  Camera,
   Clock,
   MessageSquare,
   Bookmark,
@@ -25,11 +24,12 @@ import {
 } from "lucide-react";
 
 import { motion, AnimatePresence } from "motion/react";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useTheme } from "@/hooks/use-theme";
 import { useAuth } from "@/hooks/use-auth";
-import { useHistoryController } from "@/controllers/history.controller";
+import WeeklyCard from "@/components/app/WeeklyCard";
 import { api } from "@/lib/api";
+import { getStoredToken, storeToken } from "@/lib/auth-storage";
 import { useLocale } from "@/lib/i18n";
 import type { NotificationItem } from "@/models/notification.model";
 
@@ -87,11 +87,49 @@ export default function AppShell() {
   const loc = useLocation();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const { isDark, toggle } = useTheme();
-  const { getInitials, logout, user } = useAuth();
+  const { getInitials, logout, user, token } = useAuth();
   const { t } = useLocale();
+  const [profilePic, setProfilePic] = useState<string | null>(null);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifItems, setNotifItems] = useState<NotificationItem[]>([]);
   const [notifCount, setNotifCount] = useState(0);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    setProfilePic(user?.profilePicture || null);
+  }, [user?.profilePicture]);
+
+  useEffect(() => {
+    const handler = () => {
+      const t = getStoredToken();
+      if (t) {
+        try {
+          const base64 = t.split(".")[1];
+          const json = atob(base64.replace(/-/g, "+").replace(/_/g, "/"));
+          const payload = JSON.parse(json);
+          setProfilePic(payload.profilePicture || null);
+        } catch {}
+      }
+    };
+    window.addEventListener("auth-changed", handler);
+    return () => window.removeEventListener("auth-changed", handler);
+  }, []);
+
+  const handleNavAvatarUpload = useCallback(async (file: File) => {
+    const formData = new FormData();
+    formData.append("avatar", file);
+    try {
+      const res = await api.postFormData<{ token: string; profilePicture: string }>("/api/profile/avatar", formData);
+      if (res.token) {
+        const remembered = !!localStorage.getItem("token");
+        storeToken(res.token, remembered);
+      }
+      navigate({ to: "/app/profile" });
+    } catch {
+      /* silent */
+    }
+  }, [navigate]);
 
   const fetchNotifs = useCallback(async () => {
     try {
@@ -107,7 +145,9 @@ export default function AppShell() {
   }, []);
 
   useEffect(() => {
-    if (user) fetchNotifs();
+    if (user) {
+      fetchNotifs();
+    }
   }, [user, fetchNotifs]);
 
   useEffect(() => {
@@ -170,9 +210,11 @@ export default function AppShell() {
       <aside className="fixed inset-y-3 left-3 z-40 hidden w-64 lg:block">
         <div className="glass-card flex h-full flex-col rounded-3xl p-4">
           <Link to="/" className="mb-6 flex items-center gap-2 px-2">
-            <span className="grid h-9 w-9 place-items-center rounded-2xl bg-gradient-primary text-white shadow-soft">
-              <Leaf className="h-4 w-4" />
-            </span>
+            <img
+              src="/images/logo.png"
+              alt="FoodNest"
+              className="h-9 w-9 shrink-0 rounded-2xl object-cover"
+            />
             <span className="text-lg font-bold tracking-tight">FoodNest</span>
           </Link>
           <nav className="flex-1 space-y-1">
@@ -215,56 +257,7 @@ export default function AppShell() {
             <LogOut className="h-4 w-4" />
             Sign out
           </button>
-          <div className="mt-3 rounded-2xl bg-gradient-emerald p-4 text-white">
-            <p className="text-xs/5 opacity-90">This week</p>
-            <p className="text-2xl font-bold">8.4 kg</p>
-            <p className="text-xs opacity-90">food saved · keep going 🌱</p>
-          </div>
-
-          {/* History */}
-          {(() => {
-            const { loading, items } = useHistoryController();
-            return (
-              <div className="mt-3 rounded-2xl p-4">
-                <p className="text-sm font-semibold">History</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Your claimed donations & notifications
-                </p>
-                <ul className="mt-3 space-y-2 max-h-44 overflow-auto pr-1">
-                  {loading && <li className="text-xs text-muted-foreground">Loading…</li>}
-                  {!loading && items.length === 0 && (
-                    <li className="text-xs text-muted-foreground">No activity yet</li>
-                  )}
-                  {!loading &&
-                    items.map((h, idx) => (
-                      <li
-                        key={h.id ?? idx}
-                        className="flex items-start gap-3 rounded-xl bg-background/40 px-3 py-2"
-                      >
-                        <span className="grid h-8 w-8 place-items-center rounded-2xl bg-secondary">
-                          {h.kind === "donation" ? (
-                            <HeartHandshake className="h-4 w-4" />
-                          ) : (
-                            <Bell className="h-4 w-4" />
-                          )}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-xs font-semibold">{h.title}</p>
-                          {h.subtitle && (
-                            <p className="truncate text-[11px] text-muted-foreground">
-                              {h.subtitle}
-                            </p>
-                          )}
-                        </div>
-                        {h.createdAt && (
-                          <Clock className="mt-1 h-3.5 w-3.5 text-muted-foreground" />
-                        )}
-                      </li>
-                    ))}
-                </ul>
-              </div>
-            );
-          })()}
+          <WeeklyCard />
         </div>
       </aside>
 
@@ -376,24 +369,36 @@ export default function AppShell() {
               )}
             </AnimatePresence>
           </div>
-          <Link
-            to="/app/profile"
-            className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-primary text-sm font-bold text-white"
+          <button
+            onClick={() => fileRef.current?.click()}
+            className="group relative grid h-9 w-9 place-items-center rounded-xl bg-gradient-primary text-sm font-bold text-white overflow-hidden"
           >
-            {getInitials()}
-          </Link>
+            {profilePic ? (
+              <img src={profilePic} alt="" className="h-full w-full object-cover" />
+            ) : (
+              getInitials()
+            )}
+            <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/50 opacity-0 transition group-hover:opacity-100">
+              <Camera className="h-4 w-4" />
+            </div>
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleNavAvatarUpload(f); }}
+          />
         </div>
       </header>
 
       {/* Main */}
       <main className="px-3 pb-24 pt-4 lg:ml-[17.5rem]">
+        <div className="lg:hidden">
+          <WeeklyCard />
+        </div>
         <Outlet />
       </main>
-
-      {/* FAB */}
-      <button className="fixed bottom-6 right-6 z-40 grid h-14 w-14 place-items-center rounded-full bg-gradient-primary text-white shadow-lift transition hover:scale-105">
-        <Plus className="h-6 w-6" />
-      </button>
 
       {/* Command Palette */}
       <AnimatePresence>

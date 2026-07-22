@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { Leaf, Menu, X } from "lucide-react";
-import { motion, AnimatePresence, useScroll, useTransform } from "motion/react";
+import { Menu, X } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import { useEffect, useState } from "react";
 
 const links = [
@@ -33,9 +33,11 @@ export function GlassNav() {
         }`}
       >
         <Link to="/" className="group flex min-w-0 items-center gap-2 pl-2 sm:pl-3">
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-primary text-white shadow-soft">
-            <Leaf className="h-4 w-4" />
-          </span>
+          <img
+            src="/images/logo.png"
+            alt="FoodNest"
+            className="h-8 w-8 shrink-0 rounded-full object-cover"
+          />
           <span className="truncate text-sm font-bold tracking-tight sm:text-base">FoodNest</span>
         </Link>
 
@@ -44,7 +46,7 @@ export function GlassNav() {
             <li key={label}>
               <a
                 href={href}
-                className="rounded-full px-3 py-1.5 text-sm font-medium text-foreground/70 transition hover:bg-secondary hover:text-foreground"
+                className="rounded-full px-3 py-1.5 text-sm font-medium text-foreground/70 transition-all duration-300 hover:scale-[1.04] hover:bg-secondary hover:text-foreground"
               >
                 {label}
               </a>
@@ -57,13 +59,13 @@ export function GlassNav() {
         <div className="flex items-center gap-1.5 sm:gap-2">
           <Link
             to="/login"
-            className="hidden rounded-full px-3 py-2 text-sm font-semibold text-foreground/80 transition hover:text-foreground sm:inline-flex"
+            className="hidden rounded-full px-3 py-2 text-sm font-semibold text-foreground/80 transition-all duration-300 hover:scale-[1.04] hover:text-foreground sm:inline-flex"
           >
             Sign in
           </Link>
           <Link
             to="/register"
-            className="hidden rounded-full bg-gradient-primary px-4 py-2 text-sm font-semibold text-white shadow-soft transition hover:shadow-lift sm:inline-flex"
+            className="hidden rounded-full bg-gradient-primary px-4 py-2 text-sm font-semibold text-white shadow-soft transition-all duration-300 hover:scale-[1.04] hover:shadow-lift sm:inline-flex"
           >
             Get started
           </Link>
@@ -120,30 +122,5 @@ export function GlassNav() {
         )}
       </AnimatePresence>
     </motion.header>
-  );
-}
-
-export function HeroDecor() {
-  const { scrollY } = useScroll();
-  const y = useTransform(scrollY, [0, 400], [0, -60]);
-  return (
-    <motion.div style={{ y }} aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-      {[
-        { c: "🥑", x: "10%", y: "20%", d: 0 },
-        { c: "🍅", x: "82%", y: "18%", d: 1.2 },
-        { c: "🥕", x: "20%", y: "70%", d: 0.6 },
-        { c: "🥖", x: "75%", y: "65%", d: 2 },
-        { c: "🌿", x: "50%", y: "10%", d: 1.6 },
-        { c: "🍋", x: "88%", y: "45%", d: 0.3 },
-      ].map((e, i) => (
-        <motion.div
-          key={i}
-          className="absolute text-4xl md:text-6xl animate-float"
-          style={{ left: e.x, top: e.y, animationDelay: `${e.d}s` }}
-        >
-          <span className="drop-shadow-[0_8px_24px_oklch(0.7_0.18_145/0.35)]">{e.c}</span>
-        </motion.div>
-      ))}
-    </motion.div>
   );
 }

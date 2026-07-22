@@ -5,6 +5,77 @@ import Donation from "../models/Donation.js";
 import MealPlan from "../models/MealPlan.js";
 import Notification from "../models/Notification.js";
 
+function getWeekBounds() {
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - diffToMonday);
+  monday.setHours(0, 0, 0, 0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+  return { monday, sunday };
+}
+
+export async function getWeeklyStats(req, res) {
+  const userId = new mongoose.Types.ObjectId(req.user.id);
+  const { monday, sunday } = getWeekBounds();
+
+  try {
+    const [
+      weeklyCompletedDonations,
+      weeklyInventory,
+      weeklyMealPlans,
+      weeklyClaimed,
+    ] = await Promise.all([
+      Donation.find({
+        userId,
+        status: "Completed",
+        createdAt: { $gte: monday, $lte: sunday },
+      }).lean(),
+      Inventory.find({
+        userId,
+        createdAt: { $gte: monday, $lte: sunday },
+      }).lean(),
+      MealPlan.find({
+        userId,
+        createdAt: { $gte: monday, $lte: sunday },
+      }).lean(),
+      Donation.find({
+        claimedBy: userId,
+        createdAt: { $gte: monday, $lte: sunday },
+      }).lean(),
+    ]);
+
+    const foodSavedKg = weeklyCompletedDonations.reduce(
+      (sum, d) => sum + (d.quantity || 0), 0
+    );
+
+    const donationsCompleted = weeklyCompletedDonations.length;
+    const inventoryAdded = weeklyInventory.length;
+    const mealsPlanned = weeklyMealPlans.reduce(
+      (sum, p) => sum + (p.meals ? p.meals.length : 0), 0
+    );
+    const foodClaimed = weeklyClaimed.length;
+
+    const weeklyGoalKg = 10;
+
+    res.json({
+      foodSavedKg,
+      donationsCompleted,
+      inventoryAdded,
+      mealsPlanned,
+      foodClaimed,
+      weeklyGoalKg,
+      weekStart: monday,
+      weekEnd: sunday,
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to load weekly stats", error: err.message });
+  }
+}
+
 export async function getDashboard(req, res) {
   const userId = new mongoose.Types.ObjectId(req.user.id);
   const now = new Date();

@@ -5,9 +5,10 @@ import {
   Plus, Search, X, Send, MapPin, Clock, ChevronDown, ImagePlus,
   Trash2, Edit3, Camera, Globe, Eye, EyeOff, ExternalLink, User,
   Award, Flame, TrendingUp, Users, MessageSquare, ThumbsUp,
-  BookmarkCheck, Activity, Filter,
+  BookmarkCheck, Activity, Filter, Video, ThumbsDown,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/use-auth";
 import type { CommunityController } from "@/controllers/community.controller";
 import type { CommunityPost as CommunityPostType, CommentType } from "@/models/community.model";
 import { CATEGORIES, REPORT_REASONS, SORT_OPTIONS } from "@/models/community.model";
@@ -26,8 +27,18 @@ function timeAgo(date: string) {
 }
 
 function PostCard({ post, ctrl }: { post: CommunityPostType; ctrl: CommunityController }) {
+  const { user } = useAuth();
   const [expanded, setExpanded] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const textTruncated = post.content.length > 200 && !expanded;
+  const isOwner = user?.id === post.userId._id;
+
+  const isVideo = (url: string) => /\.(mp4|mov|webm)$/i.test(url);
+
+  const allMedia = [
+    ...post.images.map((u) => ({ url: u, type: "image" as const })),
+    ...(post.videos || []).map((u) => ({ url: u, type: "video" as const })),
+  ];
 
   return (
     <motion.div
@@ -60,6 +71,40 @@ function PostCard({ post, ctrl }: { post: CommunityPostType; ctrl: CommunityCont
                   {post.category}
                 </span>
                 <span className="text-[11px] text-muted-foreground whitespace-nowrap">{timeAgo(post.createdAt)}</span>
+                <div className="relative">
+                  <button onClick={() => setMenuOpen((v) => !v)}
+                    className="rounded-full p-1 text-muted-foreground hover:bg-secondary/50"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </button>
+                  {menuOpen && (
+                    <div className="absolute right-0 top-full mt-1 z-40 min-w-[160px] rounded-2xl bg-card border border-border shadow-xl py-1 overflow-hidden"
+                      onMouseLeave={() => setMenuOpen(false)}
+                    >
+                      {isOwner ? (
+                        <button onClick={() => { ctrl.deletePost(post._id); setMenuOpen(false); }}
+                          className="flex w-full items-center gap-2 px-4 py-2 text-xs font-semibold text-red-500 hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4" /> Delete Post
+                        </button>
+                      ) : (
+                        <>
+                          <button onClick={() => { ctrl.toggleNotInterested(post._id); setMenuOpen(false); }}
+                            className="flex w-full items-center gap-2 px-4 py-2 text-xs font-semibold text-muted-foreground hover:bg-secondary/40"
+                          >
+                            <ThumbsDown className="h-4 w-4" /> Not Interested
+                          </button>
+                          <div className="border-t border-border/40 my-1" />
+                          <button onClick={() => { ctrl.setShowReportModal(post._id); setMenuOpen(false); }}
+                            className="flex w-full items-center gap-2 px-4 py-2 text-xs font-semibold text-muted-foreground hover:bg-secondary/40"
+                          >
+                            <AlertTriangle className="h-4 w-4" /> Report Post
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -80,14 +125,18 @@ function PostCard({ post, ctrl }: { post: CommunityPostType; ctrl: CommunityCont
               </div>
             )}
 
-            {post.images?.length > 0 && (
-              <div className={`mt-3 grid gap-1 ${post.images.length === 1 ? "grid-cols-1" : post.images.length === 2 ? "grid-cols-2" : post.images.length === 3 ? "grid-cols-2" : "grid-cols-2"} rounded-2xl overflow-hidden`}>
-                {post.images.slice(0, 5).map((img, i) => (
-                  <div key={i} className={`relative ${post.images.length === 3 && i === 0 ? "row-span-2" : ""}`}>
-                    <img src={img} alt="" className="w-full h-48 object-cover" loading="lazy" />
-                    {i === 4 && post.images.length > 5 && (
+            {allMedia.length > 0 && (
+              <div className={`mt-3 grid gap-1 ${allMedia.length === 1 ? "grid-cols-1" : "grid-cols-2"} rounded-2xl overflow-hidden`}>
+                {allMedia.slice(0, 5).map((media, i) => (
+                  <div key={i} className={`relative ${allMedia.length === 3 && i === 0 ? "row-span-2" : ""}`}>
+                    {media.type === "video" ? (
+                      <video src={media.url} controls className="w-full h-48 object-cover" />
+                    ) : (
+                      <img src={media.url} alt="" className="w-full h-48 object-cover" loading="lazy" />
+                    )}
+                    {i === 4 && allMedia.length > 5 && (
                       <div className="absolute inset-0 bg-black/50 grid place-items-center text-white text-lg font-bold">
-                        +{post.images.length - 5}
+                        +{allMedia.length - 5}
                       </div>
                     )}
                   </div>
@@ -151,28 +200,83 @@ function CreatePostModal({ ctrl }: { ctrl: CommunityController }) {
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("Other");
   const [tags, setTags] = useState("");
-  const [images, setImages] = useState<string[]>([]);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [videoFiles, setVideoFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [videoPreviews, setVideoPreviews] = useState<string[]>([]);
   const [pickupAvailable, setPickupAvailable] = useState(false);
   const [visibility, setVisibility] = useState<"public" | "community">("public");
   const [submitting, setSubmitting] = useState(false);
+  const imageRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLInputElement>(null);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const remaining = 5 - imageFiles.length;
+    const toAdd = files.slice(0, remaining);
+    setImageFiles((prev) => [...prev, ...toAdd]);
+    for (const f of toAdd) {
+      setImagePreviews((prev) => [...prev, URL.createObjectURL(f)]);
+    }
+    e.target.value = "";
+  };
+
+  const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const remaining = 5 - videoFiles.length;
+    const toAdd = files.slice(0, remaining);
+    setVideoFiles((prev) => [...prev, ...toAdd]);
+    for (const f of toAdd) {
+      setVideoPreviews((prev) => [...prev, URL.createObjectURL(f)]);
+    }
+    e.target.value = "";
+  };
+
+  const removeImage = (i: number) => {
+    URL.revokeObjectURL(imagePreviews[i]);
+    setImageFiles((prev) => prev.filter((_, j) => j !== i));
+    setImagePreviews((prev) => prev.filter((_, j) => j !== i));
+  };
+
+  const removeVideo = (i: number) => {
+    URL.revokeObjectURL(videoPreviews[i]);
+    setVideoFiles((prev) => prev.filter((_, j) => j !== i));
+    setVideoPreviews((prev) => prev.filter((_, j) => j !== i));
+  };
+
+  const resetForm = () => {
+    setTitle(""); setContent(""); setCategory("Other"); setTags("");
+    setImageFiles([]); setVideoFiles([]);
+    imagePreviews.forEach(URL.revokeObjectURL);
+    videoPreviews.forEach(URL.revokeObjectURL);
+    setImagePreviews([]); setVideoPreviews([]);
+    setPickupAvailable(false); setVisibility("public");
+  };
 
   const handleSubmit = async () => {
     if (!content.trim()) return toast.error("Content is required");
     setSubmitting(true);
-    await ctrl.createPost({
-      title, content, category,
-      tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
-      images, pickupAvailable, visibility,
-    });
+    const hasMedia = imageFiles.length > 0 || videoFiles.length > 0;
+    if (hasMedia) {
+      const fd = new FormData();
+      fd.append("title", title);
+      fd.append("content", content);
+      fd.append("category", category);
+      fd.append("tags", JSON.stringify(tags.split(",").map((t) => t.trim()).filter(Boolean)));
+      fd.append("pickupAvailable", String(pickupAvailable));
+      fd.append("visibility", visibility);
+      for (const f of imageFiles) fd.append("media", f);
+      for (const f of videoFiles) fd.append("media", f);
+      await ctrl.createPost(fd);
+    } else {
+      await ctrl.createPost({
+        title, content, category,
+        tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+        pickupAvailable, visibility,
+      });
+    }
     setSubmitting(false);
-    setTitle(""); setContent(""); setCategory("Other"); setTags(""); setImages([]);
-    setPickupAvailable(false); setVisibility("public");
-  };
-
-  const addImage = () => {
-    if (images.length >= 5) return toast.error("Maximum 5 images");
-    const url = prompt("Enter image URL:");
-    if (url) setImages((prev) => [...prev, url]);
+    resetForm();
   };
 
   return (
@@ -181,7 +285,7 @@ function CreatePostModal({ ctrl }: { ctrl: CommunityController }) {
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 grid place-items-center bg-black/40 backdrop-blur-sm p-4"
-          onClick={() => ctrl.setShowCreateModal(false)}
+          onClick={() => { ctrl.setShowCreateModal(false); resetForm(); }}
         >
           <motion.div
             initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
@@ -190,7 +294,7 @@ function CreatePostModal({ ctrl }: { ctrl: CommunityController }) {
           >
             <div className="flex items-center justify-between px-6 pt-6 pb-3 border-b border-border/40">
               <h2 className="text-lg font-bold">Create Post</h2>
-              <button onClick={() => ctrl.setShowCreateModal(false)} className="rounded-full p-1.5 hover:bg-secondary">
+              <button onClick={() => { ctrl.setShowCreateModal(false); resetForm(); }} className="rounded-full p-1.5 hover:bg-secondary">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -223,23 +327,48 @@ function CreatePostModal({ ctrl }: { ctrl: CommunityController }) {
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-muted-foreground mb-1 block">Images ({images.length}/5)</label>
+                <label className="text-xs font-semibold text-muted-foreground mb-1 block">Photos ({imageFiles.length}/5)</label>
                 <div className="flex flex-wrap gap-2">
-                  {images.map((img, i) => (
+                  {imagePreviews.map((preview, i) => (
                     <div key={i} className="relative h-16 w-16 rounded-xl overflow-hidden">
-                      <img src={img} alt="" className="h-full w-full object-cover" />
-                      <button onClick={() => setImages((p) => p.filter((_, j) => j !== i))}
+                      <img src={preview} alt="" className="h-full w-full object-cover" />
+                      <button onClick={() => removeImage(i)}
                         className="absolute top-0.5 right-0.5 rounded-full bg-black/60 p-0.5"
                       >
                         <X className="h-3 w-3 text-white" />
                       </button>
                     </div>
                   ))}
-                  {images.length < 5 && (
-                    <button onClick={addImage} className="h-16 w-16 rounded-xl border-2 border-dashed border-border grid place-items-center text-muted-foreground hover:text-foreground hover:border-foreground/30">
-                      <ImagePlus className="h-5 w-5" />
+                  {imageFiles.length < 5 && (
+                    <button onClick={() => imageRef.current?.click()} className="h-16 w-16 rounded-xl border-2 border-dashed border-border grid place-items-center text-muted-foreground hover:text-foreground hover:border-foreground/30">
+                      <Camera className="h-5 w-5" />
                     </button>
                   )}
+                  <input ref={imageRef} type="file" accept="image/*" multiple className="hidden" onChange={handleImageSelect} />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground mb-1 block">Videos ({videoFiles.length}/5)</label>
+                <div className="flex flex-wrap gap-2">
+                  {videoPreviews.map((preview, i) => (
+                    <div key={i} className="relative h-16 w-16 rounded-xl overflow-hidden bg-black grid place-items-center">
+                      <video src={preview} className="h-full w-full object-cover" />
+                      <div className="absolute inset-0 grid place-items-center">
+                        <Video className="h-5 w-5 text-white/70" />
+                      </div>
+                      <button onClick={() => removeVideo(i)}
+                        className="absolute top-0.5 right-0.5 rounded-full bg-black/60 p-0.5"
+                      >
+                        <X className="h-3 w-3 text-white" />
+                      </button>
+                    </div>
+                  ))}
+                  {videoFiles.length < 5 && (
+                    <button onClick={() => videoRef.current?.click()} className="h-16 w-16 rounded-xl border-2 border-dashed border-border grid place-items-center text-muted-foreground hover:text-foreground hover:border-foreground/30">
+                      <Video className="h-5 w-5" />
+                    </button>
+                  )}
+                  <input ref={videoRef} type="file" accept="video/mp4,video/quicktime,video/webm" multiple className="hidden" onChange={handleVideoSelect} />
                 </div>
               </div>
               <div className="flex items-center gap-4">
@@ -261,7 +390,7 @@ function CreatePostModal({ ctrl }: { ctrl: CommunityController }) {
               </div>
             </div>
             <div className="flex items-center justify-end gap-2 px-6 pb-6 pt-3 border-t border-border/40">
-              <button onClick={() => ctrl.setShowCreateModal(false)}
+              <button onClick={() => { ctrl.setShowCreateModal(false); resetForm(); }}
                 className="rounded-xl px-4 py-2 text-sm font-semibold text-muted-foreground hover:bg-secondary"
               >
                 Cancel
@@ -329,10 +458,13 @@ function PostDetailModal({ ctrl }: { ctrl: CommunityController }) {
                   </div>
                   {post.title && <p className="mt-1 text-sm font-bold">{post.title}</p>}
                   <p className="mt-1.5 text-sm leading-relaxed">{post.content}</p>
-                  {post.images?.length > 0 && (
+                  {(post.images?.length > 0 || post.videos?.length > 0) && (
                     <div className="mt-3 grid gap-1 grid-cols-2 rounded-2xl overflow-hidden">
                       {post.images.map((img, i) => (
-                        <img key={i} src={img} alt="" className="w-full h-40 object-cover" loading="lazy" />
+                        <img key={`img-${i}`} src={img} alt="" className="w-full h-40 object-cover" loading="lazy" />
+                      ))}
+                      {(post.videos || []).map((vid, i) => (
+                        <video key={`vid-${i}`} src={vid} controls className="w-full h-40 object-cover" />
                       ))}
                     </div>
                   )}

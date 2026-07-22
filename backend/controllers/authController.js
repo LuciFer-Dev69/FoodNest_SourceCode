@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
 import User from "../models/User.js";
 import Notification from "../models/Notification.js";
+import Activity from "../models/Activity.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "default_jwt_secret_key";
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -10,7 +11,13 @@ const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : nul
 
 function generateToken(user) {
   return jwt.sign(
-    { id: user._id, name: user.name, email: user.email, provider: user.provider },
+    {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      provider: user.provider,
+      profilePicture: user.profilePicture || null,
+    },
     JWT_SECRET,
     { expiresIn: "7d" },
   );
@@ -45,6 +52,12 @@ export async function register(req, res) {
       message: "Start by adding items to your inventory or exploring donations near you.",
       relatedId: null,
       isRead: false,
+    });
+
+    await Activity.create({
+      userId: user._id,
+      type: "joined",
+      description: "Joined FoodNest",
     });
 
     const token = generateToken(user);
@@ -83,6 +96,9 @@ export async function login(req, res) {
       return res.status(400).json({ message: "Incorrect password" });
     }
 
+    user.lastLogin = new Date();
+    await user.save();
+
     const token = generateToken(user);
 
     res.json({
@@ -118,6 +134,7 @@ export async function googleAuth(req, res) {
       return res.status(400).json({ message: "Google account must have an email address" });
     }
 
+    let isNew = false;
     let user = await User.findOne({ $or: [{ googleId }, { email }] });
 
     if (user) {
@@ -128,6 +145,7 @@ export async function googleAuth(req, res) {
         await user.save();
       }
     } else {
+      isNew = true;
       user = await User.create({
         name: name || "Google User",
         email,
@@ -146,11 +164,18 @@ export async function googleAuth(req, res) {
         relatedId: null,
         isRead: false,
       });
+
+      await Activity.create({
+        userId: user._id,
+        type: "joined",
+        description: "Joined FoodNest via Google",
+      });
     }
 
-    const token = generateToken(user);
+    user.lastLogin = new Date();
+    await user.save();
 
-    const isNew = !user.createdAt || (Date.now() - user.createdAt.getTime() < 5000);
+    const token = generateToken(user);
 
     res.json({
       message: isNew ? "Welcome to FoodNest!" : `Welcome back, ${user.name}!`,
@@ -164,7 +189,7 @@ export async function googleAuth(req, res) {
 
 export async function getProfile(req, res) {
   try {
-    const user = await User.findById(req.user.id, "name email profilePicture provider createdAt");
+    const user = await User.findById(req.user.id, "name email profilePicture provider username country city phone bio createdAt lastLogin");
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -174,7 +199,13 @@ export async function getProfile(req, res) {
       email: user.email,
       profilePicture: user.profilePicture,
       provider: user.provider,
+      username: user.username,
+      country: user.country,
+      city: user.city,
+      phone: user.phone,
+      bio: user.bio,
       createdAt: user.createdAt,
+      lastLogin: user.lastLogin,
     });
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch profile", error: err.message });

@@ -1,13 +1,19 @@
 import mongoose from "mongoose";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import CommunityPost from "../models/CommunityPost.js";
 import Comment from "../models/Comment.js";
 import Like from "../models/Like.js";
 import Bookmark from "../models/Bookmark.js";
 import Report from "../models/Report.js";
+import NotInterested from "../models/NotInterested.js";
 import Achievement from "../models/Achievement.js";
 import Notification from "../models/Notification.js";
 import User from "../models/User.js";
 import Donation from "../models/Donation.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const ObjectId = mongoose.Types.ObjectId;
 
@@ -59,17 +65,56 @@ async function checkAchievements(userId) {
 export async function createPost(req, res) {
   try {
     const userId = req.user.id;
-    const { title, content, category, images, tags, location, pickupAvailable, visibility, donationId, inventoryItemIds } = req.body;
+    const isMultipart = req.files !== undefined;
+
+    let title, content, category, tags, location, pickupAvailable, visibility, donationId, inventoryItemIds;
+    let images = [];
+    let videos = [];
+
+    if (isMultipart) {
+      title = req.body.title;
+      content = req.body.content;
+      category = req.body.category;
+      tags = req.body.tags ? (typeof req.body.tags === "string" ? JSON.parse(req.body.tags) : req.body.tags) : [];
+      location = req.body.location ? (typeof req.body.location === "string" ? JSON.parse(req.body.location) : req.body.location) : undefined;
+      pickupAvailable = req.body.pickupAvailable === "true" || req.body.pickupAvailable === true;
+      visibility = req.body.visibility || "public";
+      donationId = req.body.donationId || null;
+      inventoryItemIds = req.body.inventoryItemIds ? (typeof req.body.inventoryItemIds === "string" ? JSON.parse(req.body.inventoryItemIds) : req.body.inventoryItemIds) : [];
+
+      for (const file of req.files) {
+        const url = `/uploads/${file.filename}`;
+        if (file.mimetype.startsWith("video/")) {
+          videos.push(url);
+        } else {
+          images.push(url);
+        }
+      }
+    } else {
+      title = req.body.title;
+      content = req.body.content;
+      category = req.body.category;
+      images = req.body.images || [];
+      videos = req.body.videos || [];
+      tags = req.body.tags || [];
+      location = req.body.location;
+      pickupAvailable = req.body.pickupAvailable;
+      visibility = req.body.visibility;
+      donationId = req.body.donationId;
+      inventoryItemIds = req.body.inventoryItemIds;
+    }
 
     if (!content) return res.status(400).json({ message: "Content is required" });
-    if (images && images.length > 5) return res.status(400).json({ message: "Maximum 5 images allowed" });
+    if (images.length > 5) return res.status(400).json({ message: "Maximum 5 images allowed" });
+    if (videos.length > 5) return res.status(400).json({ message: "Maximum 5 videos allowed" });
 
     const post = await CommunityPost.create({
       userId,
       title: title || "",
       content,
       category: category || "Other",
-      images: images || [],
+      images,
+      videos,
       tags: tags || [],
       location: location || { type: "Point", coordinates: [0, 0], city: "", district: "", country: "", displayName: "" },
       pickupAvailable: pickupAvailable || false,
@@ -97,6 +142,10 @@ export async function getPosts(req, res) {
     const skip = (pageNum - 1) * limitNum;
 
     const filter = { isDeleted: false };
+
+    const hiddenIds = await NotInterested.find({ userId }).select("postId").lean();
+    const hiddenPostIds = hiddenIds.map((h) => h.postId);
+    if (hiddenPostIds.length > 0) filter._id = { $nin: hiddenPostIds };
 
     if (category) filter.category = category;
     if (tag) filter.tags = tag;
@@ -166,11 +215,64 @@ export async function updatePost(req, res) {
     if (!post || post.isDeleted) return res.status(404).json({ message: "Post not found" });
     if (post.userId.toString() !== userId) return res.status(403).json({ message: "Not authorized" });
 
-    const allowed = ["title", "content", "category", "images", "tags", "location", "pickupAvailable", "visibility"];
-    for (const field of allowed) {
-      if (req.body[field] !== undefined) post[field] = req.body[field];
+    const isMultipart = req.files !== undefined;
+
+    if (isMultipart) {
+      const allowed = ["title", "content", "category", "tags", "location", "pickupAvailable", "visibility"];
+      for (const field of allowed) {
+        if (req.body[field] !== undefined) {
+          if (field === "tags" || field === "location") {
+            post[field] = typeof req.body[field] === "string" ? JSON.parse(req.body[field]) : req.body[field];
+          } else if (field === "pickupAvailable") {
+            post[field] = req.body[field] === "true" || req.body[field] === true;
+          } else {
+            post[field] = req.body[field];
+          }
+        }
+      }
+      if (req.body.keepImages) {
+        post.images = typeof req.body.keepImages === "string" ? JSON.parse(req.body.keepImages) : req.body.keepImages;
+      }
+      if (req.body.keepVideos) {
+        post.videos = typeof req.body.keepVideos === "string" ? JSON.parse(req.body.keepVideos) : req.body.keepVideos;
+      }
+      if (req.files.length > 0) {
+        for (const file of req.files) {
+          const url = `/uploads/${file.filename}`;
+          if (file.mimetype.startsWith("video/")) {
+            if (!post.videos.includes(url)) post.videos.push(url);
+          } else {
+            if (!post.images.includes(url)) post.images.push(url);
+          }
+        }
+      }
+      if (post.images.length > 5) return res.status(400).json({ message: "Maximum 5 images" });
+      if (post.videos.length > 5) return res.status(400).json({ message: "Maximum 5 videos" });
+
+      if (req.body.removeImages) {
+        const toRemove = typeof req.body.removeImages === "string" ? JSON.parse(req.body.removeImages) : req.body.removeImages;
+        post.images = post.images.filter((img) => !toRemove.includes(img));
+        for (const imgPath of toRemove) {
+          const filePath = path.join(__dirname, "..", imgPath);
+          if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        }
+      }
+      if (req.body.removeVideos) {
+        const toRemove = typeof req.body.removeVideos === "string" ? JSON.parse(req.body.removeVideos) : req.body.removeVideos;
+        post.videos = post.videos.filter((v) => !toRemove.includes(v));
+        for (const vPath of toRemove) {
+          const filePath = path.join(__dirname, "..", vPath);
+          if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        }
+      }
+    } else {
+      const allowed = ["title", "content", "category", "images", "videos", "tags", "location", "pickupAvailable", "visibility"];
+      for (const field of allowed) {
+        if (req.body[field] !== undefined) post[field] = req.body[field];
+      }
+      if (req.body.images && req.body.images.length > 5) return res.status(400).json({ message: "Maximum 5 images" });
+      if (req.body.videos && req.body.videos.length > 5) return res.status(400).json({ message: "Maximum 5 videos" });
     }
-    if (req.body.images && req.body.images.length > 5) return res.status(400).json({ message: "Maximum 5 images" });
 
     await post.save();
     const updated = await CommunityPost.findById(post._id).populate("userId", "name profilePicture").lean();
@@ -576,6 +678,27 @@ export async function sharePost(req, res) {
     res.json({ shareUrl, shareCount: post.shareCount });
   } catch (err) {
     res.status(500).json({ message: "Failed to share post", error: err.message });
+  }
+}
+
+export async function toggleNotInterested(req, res) {
+  try {
+    const userId = req.user.id;
+    const postId = req.params.id;
+
+    const post = await CommunityPost.findById(postId);
+    if (!post || post.isDeleted) return res.status(404).json({ message: "Post not found" });
+
+    const existing = await NotInterested.findOne({ userId, postId });
+    if (existing) {
+      await NotInterested.deleteOne({ _id: existing._id });
+      return res.json({ notInterested: false });
+    }
+
+    await NotInterested.create({ userId, postId });
+    res.json({ notInterested: true });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to toggle not interested", error: err.message });
   }
 }
 

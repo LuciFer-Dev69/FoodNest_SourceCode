@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { api } from "@/lib/api";
+import { clearToken, getStoredToken } from "@/lib/auth-storage";
 import { toast } from "sonner";
 import { setLocale, getLocale } from "@/lib/i18n";
 import type { UserSettings, UserProfile } from "@/models/settings.model";
@@ -131,7 +132,7 @@ export function useSettingsController() {
     try {
       await api.post("/api/settings/delete-account", { password: deletePassword });
       toast.success("Account deleted successfully");
-      localStorage.removeItem("token");
+      clearToken();
       window.location.href = "/login";
     } catch (err: any) {
       setDeleteError(err.message || "Failed to delete account");
@@ -141,7 +142,7 @@ export function useSettingsController() {
   const handleExport = useCallback(async (type: string) => {
     try {
       const response = await fetch(`/api/settings/export?type=${type}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        headers: { Authorization: `Bearer ${getStoredToken()}` },
       });
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
