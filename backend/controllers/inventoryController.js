@@ -17,7 +17,15 @@ function getExpirationStatus(expirationDate) {
 
 async function createNotification(userId, message, type = "info") {
   try {
-    await Notification.create({ user_id: userId, message, type });
+    await Notification.create({
+      recipientUser: userId,
+      senderUser: null,
+      type: type === "warning" ? "inventory_expiring" : type === "success" ? "system" : "system",
+      title: message,
+      message: "",
+      relatedId: null,
+      isRead: false,
+    });
   } catch {
     // silently fail
   }

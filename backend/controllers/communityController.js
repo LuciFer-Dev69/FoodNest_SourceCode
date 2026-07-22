@@ -12,7 +12,15 @@ import Donation from "../models/Donation.js";
 const ObjectId = mongoose.Types.ObjectId;
 
 function createNotification(userId, fromUserId, type, postId, message) {
-  return Notification.create({ user_id: userId, fromUserId, type, postId, message });
+  return Notification.create({
+    recipientUser: userId,
+    senderUser: fromUserId,
+    type: type === "like" ? "community_like" : type === "comment" ? "community_comment" : type === "reply" ? "community_reply" : "system",
+    title: message,
+    message: "",
+    relatedId: postId,
+    isRead: false,
+  });
 }
 
 function getTrendingScore(post, now) {

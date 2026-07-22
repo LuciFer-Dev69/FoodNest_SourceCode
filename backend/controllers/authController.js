@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
 import User from "../models/User.js";
+import Notification from "../models/Notification.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "default_jwt_secret_key";
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -35,6 +36,16 @@ export async function register(req, res) {
     }
 
     const user = await User.create({ name, email, password, provider: "local" });
+
+    await Notification.create({
+      recipientUser: user._id,
+      senderUser: null,
+      type: "system",
+      title: "Welcome to FoodNest!",
+      message: "Start by adding items to your inventory or exploring donations near you.",
+      relatedId: null,
+      isRead: false,
+    });
 
     const token = generateToken(user);
 
@@ -124,6 +135,16 @@ export async function googleAuth(req, res) {
         provider: "google",
         googleId,
         profilePicture: picture || null,
+      });
+
+      await Notification.create({
+        recipientUser: user._id,
+        senderUser: null,
+        type: "system",
+        title: "Welcome to FoodNest!",
+        message: "Start by adding items to your inventory or exploring donations near you.",
+        relatedId: null,
+        isRead: false,
       });
     }
 

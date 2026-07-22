@@ -7,7 +7,20 @@ const VALID_SORT = ["createdAt", "-createdAt", "foodName", "-foodName", "quantit
 
 async function notify(userId, message, type = "info") {
   try {
-    await Notification.create({ user_id: userId, message, type });
+    let notifType = "system";
+    let title = message;
+    if (type === "success" && message.includes("claimed")) notifType = "donation_claimed";
+    else if (message.includes("published") || message.includes("created")) notifType = "donation_created";
+    else if (message.includes("completed") || message.includes("Completed")) notifType = "donation_completed";
+    await Notification.create({
+      recipientUser: userId,
+      senderUser: null,
+      type: notifType,
+      title,
+      message: "",
+      relatedId: null,
+      isRead: false,
+    });
   } catch {
     // silently fail
   }

@@ -1,13 +1,23 @@
 import mongoose from "mongoose";
 
-const mealPlanSchema = new mongoose.Schema({
-  user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  slot_key: { type: String, required: true },
-  name: { type: String, required: true },
-  emoji: { type: String, default: "🍳" },
-  uses_count: { type: Number, default: 0 },
-}, { timestamps: { createdAt: "created_at" } });
+const mealSchema = new mongoose.Schema({
+  slotKey: { type: String, required: true },
+  name: { type: String, default: "" },
+  emoji: { type: String, default: "🍽️" },
+  status: {
+    type: String,
+    enum: ["planned", "completed", "skipped", "cancelled"],
+    default: "planned",
+  },
+}, { _id: false });
 
-mealPlanSchema.index({ user_id: 1, slot_key: 1 }, { unique: true });
+const mealPlanSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  name: { type: String, default: "" },
+  weekStart: { type: Date },
+  meals: [mealSchema],
+}, { timestamps: true });
+
+mealPlanSchema.index({ userId: 1, createdAt: -1 });
 
 export default mongoose.model("MealPlan", mealPlanSchema);

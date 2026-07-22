@@ -19,13 +19,56 @@ import {
   MessageSquare,
   Bookmark,
   MapPin,
+  AlertTriangle,
+  Info,
+  CheckCheck,
 } from "lucide-react";
 
 import { motion, AnimatePresence } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useTheme } from "@/hooks/use-theme";
 import { useAuth } from "@/hooks/use-auth";
 import { useHistoryController } from "@/controllers/history.controller";
+import { api } from "@/lib/api";
+import type { NotificationItem } from "@/models/notification.model";
+
+const NOTIF_ICON: Record<string, any> = {
+  inventory_expiring: AlertTriangle,
+  inventory_expired: AlertTriangle,
+  donation_created: HeartHandshake,
+  donation_claimed: HeartHandshake,
+  donation_completed: HeartHandshake,
+  meal_saved: CalendarDays,
+  meal_reminder: CalendarDays,
+  community_like: MessageSquare,
+  community_comment: MessageSquare,
+  community_reply: MessageSquare,
+  system: Info,
+};
+
+const NOTIF_COLOR: Record<string, string> = {
+  inventory_expiring: "text-warning",
+  inventory_expired: "text-destructive",
+  donation_created: "text-success",
+  donation_claimed: "text-primary",
+  donation_completed: "text-success",
+  meal_saved: "text-success",
+  meal_reminder: "text-primary",
+  community_like: "text-primary",
+  community_comment: "text-primary",
+  community_reply: "text-primary",
+  system: "text-primary",
+};
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h`;
+  return `${Math.floor(hours / 24)}d`;
+}
 
 
 
@@ -45,7 +88,66 @@ export default function AppShell() {
   const loc = useLocation();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const { isDark, toggle } = useTheme();
-  const { getInitials, logout } = useAuth();
+  const { getInitials, logout, user } = useAuth();
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifItems, setNotifItems] = useState<NotificationItem[]>([]);
+  const [notifCount, setNotifCount] = useState(0);
+
+  const fetchNotifs = useCallback(async () => {
+    try {
+      const [listRes, countRes] = await Promise.all([
+        api.get<{ items: NotificationItem[]; unreadCount: number }>("/api/notifications?limit=5"),
+        api.get<{ unreadCount: number }>("/api/notifications/unread"),
+      ]);
+      setNotifItems(listRes.items);
+      setNotifCount(listRes.unreadCount);
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => {
+    if (user) fetchNotifs();
+  }, [user, fetchNotifs]);
+
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(fetchNotifs, 30000);
+    return () => clearInterval(interval);
+  }, [user, fetchNotifs]);
+
+  useEffect(() => {
+    if (!notifOpen) return;
+    fetchNotifs();
+  }, [notifOpen, fetchNotifs]);
+
+  const handleNotifClick = useCallback((item: NotificationItem) => {
+    setNotifOpen(false);
+    const routes: Record<string, string> = {
+      inventory_expiring: "/app/inventory",
+      inventory_expired: "/app/inventory",
+      donation_created: "/app/donations",
+      donation_claimed: "/app/donations",
+      donation_completed: "/app/donations",
+      meal_saved: "/app/planner",
+      meal_reminder: "/app/planner",
+      community_like: "/app/community",
+      community_comment: "/app/community",
+      community_reply: "/app/community",
+    };
+    const path = routes[item.type] || "/app/notifications";
+    if (!item.isRead) {
+      api.patch(`/api/notifications/${item.id}/read`).catch(() => {});
+      setNotifCount((prev) => Math.max(0, prev - 1));
+    }
+    window.location.href = path;
+  }, []);
+
+  const handleMarkAllRead = useCallback(async () => {
+    try {
+      await api.patch("/api/notifications/read-all");
+      setNotifCount(0);
+      setNotifItems((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    } catch { /* silent */ }
+  }, []);
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
@@ -169,12 +271,81 @@ export default function AppShell() {
           >
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
-          <button className="relative grid h-9 w-9 place-items-center rounded-xl bg-background/60 hover:bg-background">
-            <Bell className="h-4 w-4" />
-            <span className="absolute right-2 top-2 grid h-4 w-4 place-items-center rounded-full bg-destructive text-[9px] font-bold text-white">
-              3
-            </span>
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setNotifOpen((v) => !v)}
+              className="relative grid h-9 w-9 place-items-center rounded-xl bg-background/60 hover:bg-background"
+            >
+              <Bell className="h-4 w-4" />
+              {notifCount > 0 && (
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute -right-1 -top-1 grid min-w-[18px] px-1 h-[18px] place-items-center rounded-full bg-destructive text-[9px] font-bold text-white"
+                >
+                  {notifCount > 99 ? "99+" : notifCount}
+                </motion.span>
+              )}
+            </button>
+            <AnimatePresence>
+              {notifOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.97 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-0 top-full mt-2 w-[380px] glass-card rounded-3xl overflow-hidden shadow-lift z-50"
+                >
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-border/40">
+                    <h3 className="text-sm font-bold">Notifications</h3>
+                    {notifCount > 0 && (
+                      <button onClick={handleMarkAllRead} className="text-xs text-primary font-semibold hover:underline">
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifItems.length === 0 ? (
+                      <div className="flex flex-col items-center py-8 text-sm text-muted-foreground">
+                        <Bell className="h-8 w-8 mb-2 opacity-50" />
+                        <p>No notifications</p>
+                      </div>
+                    ) : (
+                      notifItems.map((item) => {
+                        const Icon = NOTIF_ICON[item.type] || Info;
+                        const color = NOTIF_COLOR[item.type] || "text-primary";
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => handleNotifClick(item)}
+                            className={`flex w-full items-start gap-3 px-4 py-3 text-left text-sm transition hover:bg-background/60 border-b border-border/30 last:border-0 ${
+                              !item.isRead ? "bg-primary/5" : ""
+                            }`}
+                          >
+                            <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-background/80 ${color}`}>
+                              <Icon className="h-4 w-4" />
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <p className={`truncate ${!item.isRead ? "font-bold" : "font-medium"}`}>{item.title}</p>
+                              <p className="text-[11px] text-muted-foreground">{timeAgo(item.createdAt)}</p>
+                            </div>
+                            {!item.isRead && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                  <Link
+                    to="/app/notifications"
+                    onClick={() => setNotifOpen(false)}
+                    className="flex items-center justify-center gap-2 border-t border-border/40 px-4 py-3 text-sm font-semibold text-primary hover:bg-background/60"
+                  >
+                    View All Notifications
+                  </Link>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
           <Link to="/app/profile" className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-primary text-sm font-bold text-white">
             {getInitials()}
           </Link>

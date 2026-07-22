@@ -1,20 +1,58 @@
-export type Meal = { name: string; emoji: string; uses: number };
+export type Meal = { name: string; emoji: string; uses?: number };
+
+export type MealSlot = {
+  slotKey: string;
+  name: string;
+  emoji: string;
+  status: "planned" | "completed" | "skipped" | "cancelled";
+};
+
+export type SavedPlan = {
+  id: string;
+  name: string;
+  weekStart?: string;
+  meals: MealSlot[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RecipeSuggestion = {
+  name: string;
+  emoji: string;
+  ingredients: string[];
+  ingredientsUsed: number;
+  ingredientsTotal: number;
+  itemsMissing: string[];
+  availableCount: number;
+  missingCount: number;
+  difficulty: string;
+  time: string;
+  category: string;
+  matchPercent: number;
+};
+
+export type ShoppingListItem = {
+  name: string;
+  count: number;
+};
+
+export type WeeklySummary = {
+  mealsPlanned: number;
+  mealsCompleted: number;
+  mealsSkipped: number;
+  recipesUsed: number;
+  ingredientsConsumed: number;
+};
+
+export type FavoriteRecipe = {
+  id: string;
+  name: string;
+  emoji: string;
+};
 
 export const PLANNER_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 export const PLANNER_SLOTS = ["Breakfast", "Lunch", "Dinner"] as const;
 
-export const INITIAL_PLAN: Record<string, Meal | undefined> = {
-  "Mon-Breakfast": { name: "Banana oat pancakes", emoji: "🥞", uses: 3 },
-  "Mon-Lunch": { name: "Spinach feta wrap", emoji: "🌯", uses: 4 },
-  "Tue-Dinner": { name: "Tomato pasta", emoji: "🍝", uses: 3 },
-  "Wed-Lunch": { name: "Greek salad", emoji: "🥗", uses: 5 },
-  "Thu-Dinner": { name: "Veggie stir-fry", emoji: "🥢", uses: 6 },
-  "Sat-Breakfast": { name: "Avocado toast", emoji: "🥑", uses: 2 },
-};
-
-export const SMART_SUGGESTIONS: Meal[] = [
-  { name: "Tomato soup", emoji: "🍲", uses: 4 },
-  { name: "Mushroom risotto", emoji: "🍚", uses: 3 },
-  { name: "Spinach quiche", emoji: "🥧", uses: 5 },
-  { name: "Lentil curry", emoji: "🍛", uses: 4 },
-];
+export const FILTER_OPTIONS = [
+  "All", "Breakfast", "Lunch", "Quick & Easy", "Vegetarian", "Healthy", "High Protein", "Budget",
+] as const;
