@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Search, Plus, Trash2, Edit2, X, ArrowUpDown, HeartHandshake,
-  MapPin, Clock, ImageUp, Users, Truck, ExternalLink,
+  MapPin, Clock, CalendarDays, ImageUp, Users, Truck,
 } from "lucide-react";
 import { PageHeader, Panel } from "@/components/app/primitives";
 import {
@@ -203,14 +203,26 @@ export function DonationsView({
                     <span className="inline-flex items-center gap-1">
                       <MapPin className="h-3 w-3" /> {d.pickupLocation?.city || d.city || "N/A"}
                     </span>
+                    {d.pickupDate && (
+                      <span className="inline-flex items-center gap-1">
+                        <CalendarDays className="h-3 w-3" /> {d.pickupDate}
+                      </span>
+                    )}
                     {d.pickupTime && (
                       <span className="inline-flex items-center gap-1">
                         <Clock className="h-3 w-3" /> {d.pickupTime}
                       </span>
                     )}
+                    {d.expirationDate && (
+                      <span className="inline-flex items-center gap-1">
+                        <CalendarDays className="h-3 w-3 text-red-500/70" /> Exp {d.expirationDate}
+                      </span>
+                    )}
+                    {d.deliveryMethod && (
                     <span className="inline-flex items-center gap-1">
                       <Truck className="h-3 w-3" /> {d.deliveryMethod === "self_pickup" ? "Self Pickup" : "Third-party"}
                     </span>
+                    )}
                     <span className="inline-flex items-center gap-1 ml-auto">
                       <Users className="h-3 w-3" /> {d.donor.name}
                     </span>
@@ -426,22 +438,6 @@ export function DonationsView({
                     </div>
                   </div>
 
-                  <div className="border-t border-border/40 pt-3">
-                    <span className="mb-3 block text-sm font-bold">Delivery Method</span>
-                    <div className="flex items-center gap-4">
-                      <label className="flex items-center gap-2 text-sm cursor-pointer">
-                        <input type="radio" name="deliveryMethod" value="self_pickup" defaultChecked
-                          className="accent-primary" />
-                        <Truck className="h-4 w-4 text-muted-foreground" /> Self Pickup
-                      </label>
-                      <label className="flex items-center gap-2 text-sm cursor-pointer">
-                        <input type="radio" name="deliveryMethod" value="third_party"
-                          className="accent-primary" />
-                        <ExternalLink className="h-4 w-4 text-muted-foreground" /> Third-party Delivery
-                      </label>
-                    </div>
-                  </div>
-
                   {!editId && (
                     <label className="flex items-center gap-2 text-sm">
                       <input name="shareToCommunity" type="checkbox" className="accent-primary" />
@@ -530,7 +526,13 @@ export function DonationsView({
                   {detailItem.pickupLocation?.city && (
                     <div>
                       <span className="text-muted-foreground">Pickup at</span>
-                      <p className="font-semibold">{detailItem.pickupLocation.city}</p>
+                      <p className="font-semibold">{detailItem.pickupLocation.city}{detailItem.pickupLocation.country ? `, ${detailItem.pickupLocation.country}` : ""}</p>
+                    </div>
+                  )}
+                  {detailItem.pickupDate && (
+                    <div>
+                      <span className="text-muted-foreground">Pickup date</span>
+                      <p className="font-semibold">{detailItem.pickupDate}</p>
                     </div>
                   )}
                   {detailItem.pickupTime && (
@@ -539,10 +541,18 @@ export function DonationsView({
                       <p className="font-semibold">{detailItem.pickupTime}</p>
                     </div>
                   )}
+                  {detailItem.expirationDate && (
+                    <div>
+                      <span className="text-muted-foreground">Expires</span>
+                      <p className="font-semibold text-red-500/80">{detailItem.expirationDate}</p>
+                    </div>
+                  )}
+                  {detailItem.deliveryMethod && (
                   <div>
                     <span className="text-muted-foreground">Delivery</span>
                     <p className="font-semibold">{detailItem.deliveryMethod === "self_pickup" ? "Self Pickup" : "Third-party"}</p>
                   </div>
+                  )}
                 </div>
 
                 {(detailItem.pickupLocation?.address) && (

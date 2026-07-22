@@ -31,7 +31,9 @@ const donationSchema = new mongoose.Schema({
     country: { type: String, default: "" },
     city: { type: String, default: "" },
   },
-  deliveryMethod: { type: String, enum: ["self_pickup", "third_party"], default: "self_pickup" },
+  deliveryMethod: { type: String, enum: ["self_pickup", "third_party"], default: null },
+  deliveryStatus: { type: String, enum: ["none", "proposed", "accepted"], default: "none" },
+  deliveryPartner: { type: String, default: null },
   claimedAt: { type: Date, default: null },
   completedAt: { type: Date, default: null },
 }, { timestamps: true });

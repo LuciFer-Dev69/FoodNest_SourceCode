@@ -88,6 +88,7 @@ export function useDonationsController() {
     }
     formData.delete("shareToCommunity");
     const shareToCommunity = form.querySelector<HTMLInputElement>('[name="shareToCommunity"]')?.checked ?? false;
+    if (shareToCommunity) formData.append("shareToCommunity", "true");
 
     try {
       if (editId) {

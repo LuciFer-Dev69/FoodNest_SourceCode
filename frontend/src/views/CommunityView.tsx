@@ -1,14 +1,16 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { useNavigate } from "@tanstack/react-router";
 import {
   Heart, MessageCircle, Bookmark, Share2, AlertTriangle, MoreHorizontal,
   Plus, Search, X, Send, MapPin, Clock, ChevronDown, ImagePlus,
   Trash2, Edit3, Camera, Globe, Eye, EyeOff, ExternalLink, User,
   Award, Flame, TrendingUp, Users, MessageSquare, ThumbsUp,
-  BookmarkCheck, Activity, Filter, Video, ThumbsDown,
+  BookmarkCheck, CheckCheck, Activity, Filter, Video, ThumbsDown, HeartHandshake,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { api } from "@/lib/api";
 import type { CommunityController } from "@/controllers/community.controller";
 import type { CommunityPost as CommunityPostType, CommentType } from "@/models/community.model";
 import { CATEGORIES, REPORT_REASONS, SORT_OPTIONS } from "@/models/community.model";
@@ -27,13 +29,31 @@ function timeAgo(date: string) {
 }
 
 function PostCard({ post, ctrl }: { post: CommunityPostType; ctrl: CommunityController }) {
+  const navigate = useNavigate();
   const { user } = useAuth();
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [accepting, setAccepting] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const textTruncated = post.content.length > 200 && !expanded;
   const isOwner = user?.id === post.userId._id;
 
   const isVideo = (url: string) => /\.(mp4|mov|webm)$/i.test(url);
+
+  const handleAcceptDonation = async () => {
+    if (!post.donationId) return;
+    setShowConfirm(false);
+    setAccepting(true);
+    try {
+      await api.put(`/api/donations/${post.donationId}/claim`);
+      toast.success("Donation claimed! Taking you to Food Connect.");
+      navigate({ to: `/app/food-connect/${post.donationId}` });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to claim donation");
+    } finally {
+      setAccepting(false);
+    }
+  };
 
   const allMedia = [
     ...post.images.map((u) => ({ url: u, type: "image" as const })),
@@ -150,6 +170,31 @@ function PostCard({ post, ctrl }: { post: CommunityPostType; ctrl: CommunityCont
                 {post.location.city || post.location.displayName}
               </div>
             )}
+
+            {post.donationId && post.category === "Donation" && !isOwner && (
+              <div className="mt-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-3">
+                <div className="flex items-start gap-2">
+                  <HeartHandshake className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">Food Donation</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{post.title}</p>
+                    {post.donationClaimed ? (
+                      <p className="mt-2 flex items-center gap-1.5 rounded-xl bg-gray-500/10 px-4 py-2 text-xs font-semibold text-gray-500">
+                        <CheckCheck className="h-4 w-4" /> Claimed
+                      </p>
+                    ) : (
+                      <button
+                        onClick={() => setShowConfirm(true)}
+                        disabled={accepting}
+                        className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-primary px-4 py-2 text-xs font-semibold text-white shadow-soft hover:opacity-90 disabled:opacity-50"
+                      >
+                        {accepting ? "Claiming..." : "Accept Donation"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -191,6 +236,41 @@ function PostCard({ post, ctrl }: { post: CommunityPostType; ctrl: CommunityCont
           </div>
         </div>
       </div>
+
+      {showConfirm && (
+        <div className="fixed inset-0 z-[60] grid place-items-center bg-black/40 backdrop-blur-sm p-4"
+          onClick={() => setShowConfirm(false)}
+        >
+          <div className="w-full max-w-sm rounded-3xl bg-card border border-border shadow-2xl p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-bold">Accept Donation</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Do you really want to accept this donation?
+            </p>
+            <div className="mt-3 rounded-2xl bg-emerald-500/10 p-3">
+              <p className="flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                <HeartHandshake className="h-5 w-5" /> {post.title || post.content.slice(0, 60)}
+              </p>
+            </div>
+            <div className="mt-5 flex items-center gap-2">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="flex-1 rounded-xl border border-border px-4 py-2 text-sm font-semibold text-muted-foreground hover:bg-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAcceptDonation}
+                disabled={accepting}
+                className="flex-1 rounded-xl bg-gradient-primary px-4 py-2 text-sm font-semibold text-white shadow-soft hover:opacity-90 disabled:opacity-50"
+              >
+                {accepting ? "Claiming..." : "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }

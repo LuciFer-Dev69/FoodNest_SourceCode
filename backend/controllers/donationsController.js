@@ -1,4 +1,5 @@
 import Donation from "../models/Donation.js";
+import CommunityPost from "../models/CommunityPost.js";
 import User from "../models/User.js";
 import Notification from "../models/Notification.js";
 import mongoose from "mongoose";
@@ -59,7 +60,8 @@ function formatDonation(doc, currentUserId) {
     isOwner: ownerId === currentUserId,
     isClaimant: claimedById === currentUserId,
     pickupLocation: doc.pickupLocation || { latitude: null, longitude: null, address: "", country: "", city: "" },
-    deliveryMethod: doc.deliveryMethod || "self_pickup",
+    deliveryMethod: doc.deliveryMethod || null,
+    deliveryStatus: doc.deliveryStatus || "none",
     claimedAt: doc.claimedAt || null,
     completedAt: doc.completedAt || null,
     createdAt: doc.createdAt,
@@ -179,7 +181,7 @@ export async function getDonationById(req, res) {
 }
 
 export async function createDonation(req, res) {
-  const { foodName, category, quantity, unit, description, expirationDate, pickupDate, pickupTime, address, city, landmark, pickupLocation, deliveryMethod } = req.body;
+  const { foodName, category, quantity, unit, description, expirationDate, pickupDate, pickupTime, address, city, landmark, pickupLocation, shareToCommunity } = req.body;
 
   if (!foodName) return res.status(400).json({ message: "Food name is required." });
   if (!quantity || parseFloat(quantity) <= 0) return res.status(400).json({ message: "Quantity must be greater than zero." });
@@ -222,8 +224,30 @@ export async function createDonation(req, res) {
       image,
       status: "Available",
       pickupLocation: parsedPickupLocation,
-      deliveryMethod: deliveryMethod || "self_pickup",
     });
+
+    if (shareToCommunity) {
+      const cityStr = parsedPickupLocation.city || city || "";
+      const countryStr = parsedPickupLocation.country || "";
+      const locStr = cityStr && countryStr ? `${cityStr}, ${countryStr}` : cityStr || countryStr || "";
+      const expStr = expirationDate ? ` Expires ${expirationDate}.` : "";
+      await CommunityPost.create({
+        userId: req.user.id,
+        category: "Donation",
+        title: foodName,
+        content: `🍽️ ${foodName} — ${quantity} ${unit || "unit"} available. Pickup at ${locStr}.${expStr} Claim in FoodNest!`,
+        donationId: doc._id,
+        pickupAvailable: true,
+        visibility: "public",
+        location: {
+          type: "Point",
+          coordinates: [parsedPickupLocation.longitude || 0, parsedPickupLocation.latitude || 0],
+          city: cityStr,
+          country: countryStr,
+          displayName: locStr,
+        },
+      });
+    }
 
     const populated = await Donation.findById(doc._id)
       .populate("userId", "name email")
@@ -244,7 +268,7 @@ export async function updateDonation(req, res) {
     if (doc.userId.toString() !== req.user.id) return res.status(403).json({ message: "You can only edit your own donations." });
     if (doc.status !== "Available") return res.status(400).json({ message: "Only available donations can be edited." });
 
-    const { foodName, category, quantity, unit, description, expirationDate, pickupDate, pickupTime, address, city, landmark, pickupLocation, deliveryMethod } = req.body;
+    const { foodName, category, quantity, unit, description, expirationDate, pickupDate, pickupTime, address, city, landmark, pickupLocation } = req.body;
 
     if (foodName !== undefined && !foodName) return res.status(400).json({ message: "Food name is required." });
 
@@ -276,7 +300,6 @@ export async function updateDonation(req, res) {
     if (city !== undefined) updates.city = city;
     if (landmark !== undefined) updates.landmark = landmark;
     if (pickupLocation !== undefined) updates["pickupLocation"] = getPL(pickupLocation);
-    if (deliveryMethod !== undefined) updates.deliveryMethod = deliveryMethod;
 
     if (req.file) {
       updates.image = `/uploads/${req.file.filename}`;
@@ -305,6 +328,8 @@ export async function claimDonation(req, res) {
     doc.claimedBy = new mongoose.Types.ObjectId(req.user.id);
     doc.claimedAt = new Date();
     await doc.save();
+
+    await CommunityPost.updateOne({ donationId: doc._id }, { donationClaimed: true });
 
     const populated = await Donation.findById(doc._id)
       .populate("userId", "name email")

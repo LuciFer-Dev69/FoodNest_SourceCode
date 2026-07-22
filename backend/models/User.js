@@ -13,6 +13,10 @@ const userSchema = new mongoose.Schema({
   phone: { type: String, default: "" },
   bio: { type: String, default: "" },
   lastLogin: { type: Date, default: null },
+  otpCode: { type: String, default: null },
+  otpExpiry: { type: Date, default: null },
+  twoFactorCode: { type: String, default: null },
+  twoFactorPending: { type: Boolean, default: false },
 }, { timestamps: true });
 
 export default mongoose.model("User", userSchema);

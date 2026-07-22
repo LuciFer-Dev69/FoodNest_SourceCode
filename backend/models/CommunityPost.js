@@ -23,6 +23,7 @@ const communityPostSchema = new mongoose.Schema({
   pickupAvailable: { type: Boolean, default: false },
   visibility: { type: String, enum: ["public", "community"], default: "public" },
   donationId: { type: mongoose.Schema.Types.ObjectId, ref: "Donation", default: null },
+  donationClaimed: { type: Boolean, default: false },
   mealPlanId: { type: mongoose.Schema.Types.ObjectId, ref: "MealPlan", default: null },
   inventoryItemIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "Inventory" }],
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],

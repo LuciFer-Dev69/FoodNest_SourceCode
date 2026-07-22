@@ -1,7 +1,8 @@
+import { useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import {
   ArrowLeft, HeartHandshake, CheckCheck, XCircle, Truck, ExternalLink,
-  MapPin, CalendarDays, Clock, Package, User, Mail,
+  MapPin, Clock, User, Mail, Loader2,
 } from "lucide-react";
 import { FoodConnectMap } from "@/components/donations/FoodConnectMap";
 import type { FoodConnectController } from "@/controllers/food-connect.controller";
@@ -9,6 +10,8 @@ import type { FoodConnectController } from "@/controllers/food-connect.controlle
 export function FoodConnectView({
   data, loading, isDonor, isClaimant,
   handleComplete, handleCancel, handleBack,
+  handleProposeDelivery, handleAcceptDelivery, handleRejectDelivery,
+  fetchData,
 }: FoodConnectController) {
   if (loading) {
     return (
@@ -26,17 +29,49 @@ export function FoodConnectView({
     );
   }
 
-  const dl = data.deliveryMethod;
+  const f = (domain: string) => `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
 
-  const thirdPartyLinks = data.pickupLocation.country === "Nepal"
+  const PARTNERS: { label: string; url: string; logo: string }[] = data.pickupLocation.country === "Nepal"
     ? [
-        { label: "Pathao", url: "https://pathao.com/delivery" },
-        { label: "InDrive", url: "https://indrive.com/delivery" },
+        { label: "Yango", url: "https://yango.com/", logo: f("yango.com") },
+        { label: "InDrive", url: "https://indrive.com/delivery", logo: f("indrive.com") },
+        { label: "Pathao", url: "https://pathao.com/delivery", logo: f("pathao.com") },
       ]
     : [
-        { label: "Lalamove", url: "https://www.lalamove.com" },
-        { label: "GrabExpress", url: "https://www.grab.com/my/delivery" },
+        { label: "Grab", url: "https://www.grab.com/my/delivery", logo: f("grab.com") },
+        { label: "InDrive", url: "https://indrive.com/delivery", logo: f("indrive.com") },
+        { label: "Maxim", url: "https://maxim.com/", logo: f("maxim.com") },
+        { label: "Air Asia Ride", url: "https://www.airasia.com/ride", logo: f("airasia.com") },
       ];
+
+  const chosenPartner = PARTNERS.find((p) => p.label === data.deliveryPartner);
+
+  const ds = data.deliveryStatus;
+  const dm = data.deliveryMethod;
+
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollCountRef = useRef(0);
+
+  useEffect(() => {
+    if (ds === "proposed" && isClaimant) {
+      pollingRef.current = setInterval(() => {
+        pollCountRef.current += 1;
+        if (pollCountRef.current >= 24) {
+          if (pollingRef.current) clearInterval(pollingRef.current);
+          pollingRef.current = null;
+          return;
+        }
+        fetchData();
+      }, 5000);
+    }
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+      pollCountRef.current = 0;
+    };
+  }, [ds, isClaimant, fetchData]);
 
   return (
     <div className="space-y-6 pb-8">
@@ -93,36 +128,119 @@ export function FoodConnectView({
               <MapPin className="h-4 w-4 shrink-0" />
               <span>{data.pickupLocation.address || `${data.pickupLocation.city}, ${data.pickupLocation.country}`}</span>
             </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Truck className="h-4 w-4 shrink-0" />
-              <span>{dl === "self_pickup" ? "Self Pickup" : "Third-party Delivery"}</span>
-            </div>
           </div>
 
-          {/* Third-party delivery links */}
-          {dl === "third_party" && data.status !== "Cancelled" && (
-            <div className="border-t border-border/40 pt-3 space-y-2">
-              <p className="text-xs font-semibold text-muted-foreground">Book a delivery partner</p>
-              <div className="flex flex-wrap gap-2">
-                {thirdPartyLinks.map((link) => (
-                  <a
-                    key={link.label}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-2xl border border-border px-4 py-2 text-xs font-medium hover:bg-secondary"
-                  >
-                    <ExternalLink className="h-3 w-3" /> {link.label}
-                  </a>
-                ))}
+          {/* Delivery section */}
+          <div className="border-t border-border/40 pt-3 space-y-3">
+            <p className="text-xs font-semibold text-muted-foreground">Delivery</p>
+
+            {/* State: none + claimant → Self Pickup or choose partner */}
+            {ds === "none" && isClaimant && data.status === "Reserved" && (
+              <div className="space-y-2">
+                <button
+                  onClick={() => handleProposeDelivery("self_pickup")}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-primary px-5 py-2.5 text-sm font-semibold text-white shadow-soft hover:shadow-lift"
+                >
+                  <Truck className="h-4 w-4" /> Self Pickup
+                </button>
+                <p className="text-center text-xs text-muted-foreground">— or choose a delivery partner —</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {PARTNERS.map((partner) => (
+                    <button
+                      key={partner.label}
+                      onClick={() => handleProposeDelivery("third_party", partner.label)}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-2xl border border-border px-3 py-2.5 text-xs font-medium hover:bg-secondary"
+                    >
+                      <img src={partner.logo} alt="" className="h-4 w-4 rounded" />
+                      {partner.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px] text-muted-foreground">You'll send a request to the donor for confirmation.</p>
               </div>
-              <p className="text-[10px] text-muted-foreground">Opens external site. No booking or payment handled here.</p>
-            </div>
-          )}
+            )}
+
+            {/* State: proposed + claimant → waiting */}
+            {ds === "proposed" && isClaimant && (
+              <div className="flex items-center gap-2 rounded-2xl bg-amber-500/10 px-4 py-3 text-sm text-amber-600">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Waiting for donor to confirm <strong>{data.deliveryPartner}</strong> delivery…
+              </div>
+            )}
+
+            {/* State: proposed + donor → accept/reject with partner name */}
+            {ds === "proposed" && isDonor && (
+              <div className="space-y-2">
+                <p className="text-sm">
+                  Claimant proposes delivery via <strong>{data.deliveryPartner}</strong>
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleAcceptDelivery}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-primary px-4 py-2 text-sm font-semibold text-white shadow-soft hover:shadow-lift"
+                  >
+                    <CheckCheck className="h-4 w-4" /> Accept
+                  </button>
+                  <button
+                    onClick={handleRejectDelivery}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-destructive hover:bg-destructive/5"
+                  >
+                    <XCircle className="h-4 w-4" /> Reject
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* State: accepted → show method + chosen partner link */}
+            {ds === "accepted" && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <Truck className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span className="font-semibold">
+                    {dm === "self_pickup" ? "Self Pickup" : `Delivery via ${data.deliveryPartner}`}
+                  </span>
+                </div>
+                {dm === "third_party" && data.status !== "Cancelled" && chosenPartner && (
+                  <div className="pt-2 space-y-2">
+                    <a
+                      href={chosenPartner.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 rounded-2xl bg-gradient-primary px-5 py-3 text-sm font-semibold text-white shadow-soft hover:opacity-90"
+                    >
+                      <img src={chosenPartner.logo} alt="" className="h-5 w-5 rounded" />
+                      Open {chosenPartner.label}
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                    <details className="group">
+                      <summary className="cursor-pointer text-[11px] text-muted-foreground hover:text-foreground">
+                        Other delivery partners
+                      </summary>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {PARTNERS.filter((p) => p.label !== data.deliveryPartner).map((link) => (
+                          <a
+                            key={link.label}
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 rounded-2xl border border-border px-3 py-1.5 text-xs font-medium hover:bg-secondary"
+                          >
+                            <img src={link.logo} alt="" className="h-3.5 w-3.5 rounded" />
+                            {link.label} <ExternalLink className="h-3 w-3" />
+                          </a>
+                        ))}
+                      </div>
+                    </details>
+                    <p className="text-[10px] text-muted-foreground">Opens external site. No booking or payment handled here.</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Action buttons */}
           <div className="border-t border-border/40 pt-3 space-y-2">
-            {isDonor && data.status === "Reserved" && (
+            {ds === "accepted" && isDonor && data.status === "Reserved" && (
               <>
                 <button
                   onClick={handleComplete}

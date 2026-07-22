@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import {
-  HeartHandshake, Package, Clock, CheckCheck, XCircle, User,
+  HeartHandshake, Package, Clock, CheckCheck, XCircle, User, Truck,
 } from "lucide-react";
 import type { FoodConnectListController } from "@/controllers/food-connect.controller";
 
@@ -127,6 +127,18 @@ function FoodConnectCard({ item, userId, onClick }: { item: any; userId?: string
               : `Created ${new Date(item.createdAt).toLocaleDateString()}`}
         </span>
       </div>
+
+      {item.deliveryMethod && (
+        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+          <Truck className="h-3 w-3 shrink-0" />
+          <span>
+            {item.deliveryMethod === "self_pickup"
+              ? "Self Pickup"
+              : `Third-party${item.deliveryPartner ? ` · ${item.deliveryPartner}` : ""}`}
+            {item.deliveryStatus === "proposed" && " (pending)"}
+          </span>
+        </div>
+      )}
     </motion.button>
   );
 }

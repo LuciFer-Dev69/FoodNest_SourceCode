@@ -23,7 +23,9 @@ export type FoodConnectData = {
     country: string;
     city: string;
   };
-  deliveryMethod: "self_pickup" | "third_party";
+  deliveryMethod: "self_pickup" | "third_party" | null;
+  deliveryStatus: "none" | "proposed" | "accepted";
+  deliveryPartner: string | null;
   claimedAt: string | null;
   completedAt: string | null;
   donor: {
@@ -92,6 +94,43 @@ export function useFoodConnectController(donationId: string) {
     }
   };
 
+  const handleProposeDelivery = async (deliveryMethod: "self_pickup" | "third_party", deliveryPartner?: string) => {
+    if (!data) return;
+    try {
+      const result = await api.post<FoodConnectData>(`/api/food-connect/${donationId}/propose-delivery`, { deliveryMethod, deliveryPartner });
+      setData(result);
+      if (deliveryMethod === "self_pickup") {
+        toast.success("Self pickup chosen");
+      } else {
+        toast.success(`${deliveryPartner} proposed to donor`);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to propose delivery");
+    }
+  };
+
+  const handleAcceptDelivery = async () => {
+    if (!data) return;
+    try {
+      await api.post(`/api/food-connect/${donationId}/respond-delivery`, { accept: true });
+      toast.success("Delivery accepted");
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to accept delivery");
+    }
+  };
+
+  const handleRejectDelivery = async () => {
+    if (!data) return;
+    try {
+      await api.post(`/api/food-connect/${donationId}/respond-delivery`, { accept: false });
+      toast.success("Delivery rejected, claim cancelled");
+      navigate({ to: "/app/donations" });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to reject delivery");
+    }
+  };
+
   const handleBack = () => {
     navigate({ to: "/app/donations" });
   };
@@ -103,6 +142,9 @@ export function useFoodConnectController(donationId: string) {
     isClaimant,
     handleComplete,
     handleCancel,
+    handleProposeDelivery,
+    handleAcceptDelivery,
+    handleRejectDelivery,
     handleBack,
     fetchData,
   };
@@ -116,7 +158,9 @@ export type FoodConnectListItem = {
   unit: string;
   image: string | null;
   status: string;
-  deliveryMethod: "self_pickup" | "third_party";
+  deliveryMethod: "self_pickup" | "third_party" | null;
+  deliveryStatus: "none" | "proposed" | "accepted";
+  deliveryPartner: string | null;
   donor: { id: string; name: string; email: string; profilePicture: string | null };
   claimant: { id: string; name: string; email: string; profilePicture: string | null } | null;
   claimedAt: string | null;

@@ -9,12 +9,19 @@ export interface FieldErrors {
   name?: string;
   email?: string;
   password?: string;
+  code?: string;
+  otp?: string;
 }
 
 export function useAuthController() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+
+  const [pendingUserId, setPendingUserId] = useState<string | null>(null);
+  const [pendingCode, setPendingCode] = useState<string | null>(null);
+  const [forgotEmail, setForgotEmail] = useState<string>("");
+  const [forgotOtp, setForgotOtp] = useState<string | null>(null);
 
   const clearErrors = () => setFieldErrors({});
 
@@ -57,14 +64,15 @@ export function useAuthController() {
       return;
     }
 
-    let token: string | undefined;
-    let userName: string | undefined;
-
     try {
       setLoading(true);
       const res = await api.post<AuthResponse>("/api/auth/register", { name, email, password });
-      token = res.token;
-      userName = res.user?.name || name;
+      if (res.requires2FA && res.userId) {
+        setPendingUserId(res.userId);
+        setPendingCode(res.code || null);
+        setLoading(false);
+        return;
+      }
     } catch (err: any) {
       const msg = err.message || "Something went wrong. Please try again later.";
       if (msg.toLowerCase().includes("email already exists")) {
@@ -75,12 +83,37 @@ export function useAuthController() {
       setLoading(false);
       return;
     }
+  };
 
-    if (token) {
-      storeToken(token, true);
-      toast.success(`Welcome to FoodNest, ${userName}!`);
+  const handleVerify2FA = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    clearErrors();
+
+    const formData = new FormData(e.currentTarget);
+    const code = formData.get("code") as string;
+
+    if (!code) {
+      setFieldErrors({ code: "Verification code is required." });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await api.post<AuthResponse>("/api/auth/register/verify-2fa", {
+        userId: pendingUserId,
+        code,
+      });
+      if (res.token) {
+        storeToken(res.token, true);
+        toast.success("Welcome to FoodNest!");
+        setPendingUserId(null);
+        setPendingCode(null);
+        setLoading(false);
+        navigate({ to: "/app/dashboard" });
+      }
+    } catch (err: any) {
+      setFieldErrors({ code: err.message || "Invalid verification code" });
       setLoading(false);
-      navigate({ to: "/app/dashboard" });
     }
   };
 
@@ -134,12 +167,90 @@ export function useAuthController() {
     }
   };
 
+  const handleForgotPassword = async (email: string): Promise<boolean> => {
+    clearErrors();
+    const emailErr = validateEmail(email);
+    if (emailErr) {
+      setFieldErrors({ email: emailErr });
+      return false;
+    }
+
+    try {
+      setLoading(true);
+      const res = await api.post<AuthResponse>("/api/auth/forgot-password", { email });
+      setForgotEmail(email);
+      setForgotOtp(res.otp || null);
+      toast.success("Reset code generated!");
+      setLoading(false);
+      return true;
+    } catch (err: any) {
+      const msg = (err.message || "").toLowerCase();
+      if (msg.includes("no account found")) {
+        toast.warning("No account found with this email address.");
+      } else {
+        toast.error(err.message || "Something went wrong");
+      }
+      setLoading(false);
+      return false;
+    }
+  };
+
+  const handleResetPassword = async (otp: string, password: string) => {
+    clearErrors();
+    if (!otp) {
+      setFieldErrors({ otp: "OTP code is required." });
+      return;
+    }
+    if (!password) {
+      setFieldErrors({ password: "New password is required." });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await api.post<AuthResponse>("/api/auth/reset-password", {
+        email: forgotEmail,
+        otp,
+        password,
+      });
+      toast.success("Password reset successful! You can now login.");
+      setForgotEmail("");
+      setForgotOtp(null);
+      setLoading(false);
+      navigate({ to: "/login", search: { mode: "login" } });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to reset password");
+      setLoading(false);
+    }
+  };
+
+  const reset2FA = () => {
+    setPendingUserId(null);
+    setPendingCode(null);
+    clearErrors();
+  };
+
+  const resetForgot = () => {
+    setForgotEmail("");
+    setForgotOtp(null);
+    clearErrors();
+  };
+
   return {
     loading,
     fieldErrors,
+    pendingUserId,
+    pendingCode,
+    forgotEmail,
+    forgotOtp,
     clearErrors,
     handleRegister,
+    handleVerify2FA,
     handleLogin,
+    handleForgotPassword,
+    handleResetPassword,
+    reset2FA,
+    resetForgot,
   };
 }
 

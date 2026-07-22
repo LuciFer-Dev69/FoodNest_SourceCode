@@ -95,7 +95,9 @@ export default function AppShell() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifItems, setNotifItems] = useState<NotificationItem[]>([]);
   const [notifCount, setNotifCount] = useState(0);
+  const [profileOpen, setProfileOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -200,10 +202,14 @@ export default function AppShell() {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setPaletteOpen((v) => !v);
-      } else if (e.key === "Escape") setPaletteOpen(false);
+      } else if (e.key === "Escape") { setPaletteOpen(false); setProfileOpen(false); }
     };
     window.addEventListener("keydown", h);
-    return () => window.removeEventListener("keydown", h);
+    const click = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) setProfileOpen(false);
+    };
+    document.addEventListener("mousedown", click);
+    return () => { window.removeEventListener("keydown", h); document.removeEventListener("mousedown", click); };
   }, []);
 
   return (
@@ -259,7 +265,6 @@ export default function AppShell() {
             <LogOut className="h-4 w-4" />
             Sign out
           </button>
-          <WeeklyCard />
         </div>
       </aside>
 
@@ -371,26 +376,58 @@ export default function AppShell() {
               )}
             </AnimatePresence>
           </div>
-          <button
-            onClick={() => fileRef.current?.click()}
-            className="group relative grid h-9 w-9 place-items-center rounded-xl bg-gradient-primary text-sm font-bold text-white overflow-hidden"
-          >
-            {profilePic ? (
-              <img src={profilePic} alt="" className="h-full w-full object-cover" />
-            ) : (
-              getInitials()
-            )}
-            <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/50 opacity-0 transition group-hover:opacity-100">
-              <Camera className="h-4 w-4" />
-            </div>
-          </button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleNavAvatarUpload(f); }}
-          />
+          <div ref={profileRef} className="relative">
+            <button
+              onClick={() => setProfileOpen((v) => !v)}
+              className="group relative grid h-9 w-9 place-items-center rounded-xl bg-gradient-primary text-sm font-bold text-white overflow-hidden"
+            >
+              {profilePic ? (
+                <img src={profilePic} alt="" className="h-full w-full object-cover" />
+              ) : (
+                getInitials()
+              )}
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleNavAvatarUpload(f); }}
+            />
+            <AnimatePresence>
+              {profileOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.97 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-0 top-full mt-2 w-52 glass-card rounded-2xl overflow-hidden shadow-lift z-50"
+                >
+                  <div className="px-3 py-2.5 border-b border-border/40 text-xs text-muted-foreground">
+                    {user?.email}
+                  </div>
+                  <button
+                    onClick={() => { setProfileOpen(false); navigate({ to: "/app/profile" }); }}
+                    className="flex w-full items-center gap-2 px-3 py-2.5 text-sm hover:bg-background/60 transition"
+                  >
+                    <UserIcon className="h-4 w-4" /> View Profile
+                  </button>
+                  <button
+                    onClick={() => { fileRef.current?.click(); setProfileOpen(false); }}
+                    className="flex w-full items-center gap-2 px-3 py-2.5 text-sm hover:bg-background/60 transition"
+                  >
+                    <Camera className="h-4 w-4" /> Change Photo
+                  </button>
+                  <button
+                    onClick={logout}
+                    className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-destructive hover:bg-destructive/5 transition"
+                  >
+                    <LogOut className="h-4 w-4" /> Sign out
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </header>
 

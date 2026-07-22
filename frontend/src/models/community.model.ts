@@ -26,6 +26,7 @@ export type CommunityPost = {
   pickupAvailable: boolean;
   visibility: "public" | "community";
   donationId?: string;
+  donationClaimed?: boolean;
   mealPlanId?: string;
   inventoryItemIds: string[];
   likes: string[];
