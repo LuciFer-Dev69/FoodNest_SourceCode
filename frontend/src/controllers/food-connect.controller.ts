@@ -108,4 +108,64 @@ export function useFoodConnectController(donationId: string) {
   };
 }
 
+export type FoodConnectListItem = {
+  id: string;
+  foodName: string;
+  category: string;
+  quantity: number;
+  unit: string;
+  image: string | null;
+  status: string;
+  deliveryMethod: "self_pickup" | "third_party";
+  donor: { id: string; name: string; email: string; profilePicture: string | null };
+  claimant: { id: string; name: string; email: string; profilePicture: string | null } | null;
+  claimedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+};
+
+export function useFoodConnectListController() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [items, setItems] = useState<FoodConnectListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const userId = user?.id;
+
+  const active = useMemo(() => items.filter((i) => i.status === "Reserved"), [items]);
+  const history = useMemo(() => items.filter((i) => i.status === "Completed" || i.status === "Cancelled"), [items]);
+
+  const fetchItems = useCallback(async () => {
+    try {
+      setLoading(true);
+      const result = await api.get<{ items: FoodConnectListItem[] }>("/api/food-connect");
+      setItems(result.items);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to load food connects");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchItems();
+  }, [fetchItems]);
+
+  const handleOpen = (id: string) => {
+    navigate({ to: `/app/food-connect/${id}` });
+  };
+
+  return {
+    items,
+    active,
+    history,
+    loading,
+    userId,
+    handleOpen,
+    fetchItems,
+  };
+}
+
+export type FoodConnectListController = ReturnType<typeof useFoodConnectListController>;
+
 export type FoodConnectController = ReturnType<typeof useFoodConnectController>;

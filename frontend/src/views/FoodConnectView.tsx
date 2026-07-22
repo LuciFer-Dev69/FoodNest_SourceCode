@@ -1,7 +1,7 @@
 import { motion } from "motion/react";
 import {
   ArrowLeft, HeartHandshake, CheckCheck, XCircle, Truck, ExternalLink,
-  MapPin, CalendarDays, Clock, Package, User, Phone,
+  MapPin, CalendarDays, Clock, Package, User, Mail,
 } from "lucide-react";
 import { FoodConnectMap } from "@/components/donations/FoodConnectMap";
 import type { FoodConnectController } from "@/controllers/food-connect.controller";
@@ -185,6 +185,9 @@ export function FoodConnectView({
                 <p className="text-sm font-semibold">{data.donor.name}</p>
                 <p className="text-xs text-muted-foreground">Donor</p>
                 {isDonor && <span className="text-[10px] text-primary font-semibold">You</span>}
+                <a href={`mailto:${data.donor.email}`} className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary">
+                  <Mail className="h-3 w-3" /> {data.donor.email}
+                </a>
               </div>
             </div>
 
@@ -201,6 +204,9 @@ export function FoodConnectView({
                   <p className="text-sm font-semibold">{data.claimant.name}</p>
                   <p className="text-xs text-muted-foreground">Recipient</p>
                   {isClaimant && <span className="text-[10px] text-primary font-semibold">You</span>}
+                  <a href={`mailto:${data.claimant.email}`} className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary">
+                    <Mail className="h-3 w-3" /> {data.claimant.email}
+                  </a>
                 </div>
               </div>
             )}

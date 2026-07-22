@@ -19,6 +19,43 @@ async function notify(userId, message, type = "info", relatedId = null) {
   } catch {}
 }
 
+export async function listFoodConnects(req, res) {
+  try {
+    const userId = req.user.id;
+    const docs = await Donation.find({
+      $or: [
+        { userId },
+        { claimedBy: userId },
+      ],
+      status: { $in: ["Reserved", "Completed", "Cancelled"] },
+    })
+      .populate("userId", "name email profilePicture")
+      .populate("claimedBy", "name email profilePicture")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const items = docs.map((doc) => ({
+      id: doc._id,
+      foodName: doc.foodName,
+      category: doc.category,
+      quantity: doc.quantity,
+      unit: doc.unit,
+      image: doc.image,
+      status: doc.status,
+      deliveryMethod: doc.deliveryMethod || "self_pickup",
+      donor: { id: doc.userId._id, name: doc.userId.name, email: doc.userId.email, profilePicture: doc.userId.profilePicture },
+      claimant: doc.claimedBy ? { id: doc.claimedBy._id, name: doc.claimedBy.name, email: doc.claimedBy.email, profilePicture: doc.claimedBy.profilePicture } : null,
+      claimedAt: doc.claimedAt,
+      completedAt: doc.completedAt,
+      createdAt: doc.createdAt,
+    }));
+
+    res.json({ items });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to list food connects", error: err.message });
+  }
+}
+
 export async function getFoodConnect(req, res) {
   try {
     const doc = await Donation.findById(req.params.donationId)
