@@ -129,7 +129,7 @@ router.put("/:id/claim", authenticateToken, async (req, res) => {
     const result = await Donation.findOneAndUpdate(
       { _id: req.params.id, status: "Available" },
       { status: "Claimed", claimant_id: req.user.id },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!result) {

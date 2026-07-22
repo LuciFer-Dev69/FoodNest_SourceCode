@@ -32,7 +32,7 @@ export async function updateSettings(req, res) {
     const doc = await UserSettings.findOneAndUpdate(
       { userId: req.user.id },
       { $set: updates },
-      { upsert: true, new: true },
+      { upsert: true, returnDocument: 'after' },
     ).lean();
     res.json(doc);
   } catch (err) {

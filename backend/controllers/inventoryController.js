@@ -225,7 +225,7 @@ export async function updateItem(req, res) {
     const doc = await Inventory.findOneAndUpdate(
       { _id: req.params.id, userId: req.user.id },
       { $set: updates },
-      { new: true, runValidators: true },
+      { returnDocument: 'after', runValidators: true },
     ).lean();
 
     createNotification(req.user.id, `${doc.foodName} updated in inventory.`, "info");

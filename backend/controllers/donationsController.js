@@ -249,7 +249,7 @@ export async function updateDonation(req, res) {
       updates.image = `/uploads/${req.file.filename}`;
     }
 
-    const updated = await Donation.findByIdAndUpdate(req.params.id, { $set: updates }, { new: true })
+    const updated = await Donation.findByIdAndUpdate(req.params.id, { $set: updates }, { returnDocument: 'after' })
       .populate("userId", "name email")
       .lean();
 

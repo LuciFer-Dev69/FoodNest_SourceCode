@@ -1,8 +1,5 @@
 // Simple API client wrapping fetch to make requests to /api
-export async function apiFetch<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
+export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
   const headers = new Headers(options.headers || {});
@@ -23,7 +20,6 @@ export async function apiFetch<T>(
     ...options,
     headers,
   });
-
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -51,6 +47,13 @@ export const api = {
       ...options,
       method: "PUT",
       body: JSON.stringify(body),
+    }),
+
+  patch: <T>(endpoint: string, body?: ApiBody, options?: RequestInit) =>
+    apiFetch<T>(endpoint, {
+      ...options,
+      method: "PATCH",
+      body: body ? JSON.stringify(body) : undefined,
     }),
 
   delete: <T>(endpoint: string, options?: RequestInit) =>

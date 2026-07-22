@@ -75,7 +75,7 @@ router.put("/:id", authenticateToken, async (req, res) => {
     const item = await Inventory.findOneAndUpdate(
       { _id: req.params.id, user_id: req.user.id },
       { name, emoji: emoji || "🍲", qty, cat, loc, expires_in_days: expires || 3 },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!item) {
