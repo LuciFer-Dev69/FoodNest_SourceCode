@@ -18,10 +18,14 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
     .replace(/^https?:\/\/[^/]+/i, "")
     .replace(/^\/api\//i, "/api/");
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+
   const response = await fetch(normalizedEndpoint, {
     ...options,
     headers,
-  });
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timeout));
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));

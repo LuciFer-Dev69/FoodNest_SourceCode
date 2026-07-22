@@ -20,10 +20,20 @@ const donationSchema = new mongoose.Schema({
   image: { type: String, default: null },
   status: {
     type: String,
-    enum: ["Available", "Reserved", "Completed", "Expired"],
+    enum: ["Available", "Reserved", "Completed", "Expired", "Cancelled"],
     default: "Available",
   },
   claimedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+  pickupLocation: {
+    latitude: { type: Number, default: null },
+    longitude: { type: Number, default: null },
+    address: { type: String, default: "" },
+    country: { type: String, default: "" },
+    city: { type: String, default: "" },
+  },
+  deliveryMethod: { type: String, enum: ["self_pickup", "third_party"], default: "self_pickup" },
+  claimedAt: { type: Date, default: null },
+  completedAt: { type: Date, default: null },
 }, { timestamps: true });
 
 donationSchema.index({ userId: 1, createdAt: -1 });

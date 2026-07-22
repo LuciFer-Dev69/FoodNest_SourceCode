@@ -53,7 +53,7 @@ function PostCard({ post, ctrl }: { post: CommunityPostType; ctrl: CommunityCont
             onClick={() => { ctrl.loadProfile(post.userId._id); ctrl.setShowUserProfile(post.userId._id); }}
           >
             {post.userId.profilePicture ? (
-              <img src={post.userId.profilePicture} alt="" className="h-full w-full object-cover" />
+              <img src={post.userId.profilePicture} alt="" className="h-full w-full object-contain bg-black/5" />
             ) : (
               post.userId.name?.charAt(0).toUpperCase() || "U"
             )}
@@ -126,13 +126,13 @@ function PostCard({ post, ctrl }: { post: CommunityPostType; ctrl: CommunityCont
             )}
 
             {allMedia.length > 0 && (
-              <div className={`mt-3 grid gap-1 ${allMedia.length === 1 ? "grid-cols-1" : "grid-cols-2"} rounded-2xl overflow-hidden`}>
+              <div className="mt-3 grid gap-1 grid-cols-2 rounded-2xl overflow-hidden">
                 {allMedia.slice(0, 5).map((media, i) => (
                   <div key={i} className={`relative ${allMedia.length === 3 && i === 0 ? "row-span-2" : ""}`}>
                     {media.type === "video" ? (
-                      <video src={media.url} controls className="w-full h-48 object-cover" />
+                      <video src={media.url} controls className="w-full h-36 object-contain bg-black/5" />
                     ) : (
-                      <img src={media.url} alt="" className="w-full h-48 object-cover" loading="lazy" />
+                      <img src={media.url} alt="" className="w-full h-36 object-contain bg-black/5" loading="lazy" />
                     )}
                     {i === 4 && allMedia.length > 5 && (
                       <div className="absolute inset-0 bg-black/50 grid place-items-center text-white text-lg font-bold">
@@ -331,7 +331,7 @@ function CreatePostModal({ ctrl }: { ctrl: CommunityController }) {
                 <div className="flex flex-wrap gap-2">
                   {imagePreviews.map((preview, i) => (
                     <div key={i} className="relative h-16 w-16 rounded-xl overflow-hidden">
-                      <img src={preview} alt="" className="h-full w-full object-cover" />
+                      <img src={preview} alt="" className="h-full w-full object-contain bg-black/5" />
                       <button onClick={() => removeImage(i)}
                         className="absolute top-0.5 right-0.5 rounded-full bg-black/60 p-0.5"
                       >
@@ -352,7 +352,7 @@ function CreatePostModal({ ctrl }: { ctrl: CommunityController }) {
                 <div className="flex flex-wrap gap-2">
                   {videoPreviews.map((preview, i) => (
                     <div key={i} className="relative h-16 w-16 rounded-xl overflow-hidden bg-black grid place-items-center">
-                      <video src={preview} className="h-full w-full object-cover" />
+                      <video src={preview} className="h-full w-full object-contain bg-black/5" />
                       <div className="absolute inset-0 grid place-items-center">
                         <Video className="h-5 w-5 text-white/70" />
                       </div>
@@ -447,7 +447,7 @@ function PostDetailModal({ ctrl }: { ctrl: CommunityController }) {
               <div className="flex items-start gap-3">
                 <div className="h-9 w-9 shrink-0 rounded-full bg-gradient-primary grid place-items-center text-white text-xs font-bold overflow-hidden">
                   {post.userId.profilePicture ? (
-                    <img src={post.userId.profilePicture} alt="" className="h-full w-full object-cover" />
+                    <img src={post.userId.profilePicture} alt="" className="h-full w-full object-contain bg-black/5" />
                   ) : (post.userId.name?.charAt(0)?.toUpperCase() || "U")}
                 </div>
                 <div className="flex-1">
@@ -461,10 +461,10 @@ function PostDetailModal({ ctrl }: { ctrl: CommunityController }) {
                   {(post.images?.length > 0 || post.videos?.length > 0) && (
                     <div className="mt-3 grid gap-1 grid-cols-2 rounded-2xl overflow-hidden">
                       {post.images.map((img, i) => (
-                        <img key={`img-${i}`} src={img} alt="" className="w-full h-40 object-cover" loading="lazy" />
+                        <img key={`img-${i}`} src={img} alt="" className="w-full object-contain bg-black/5 h-36" loading="lazy" />
                       ))}
                       {(post.videos || []).map((vid, i) => (
-                        <video key={`vid-${i}`} src={vid} controls className="w-full h-40 object-cover" />
+                        <video key={`vid-${i}`} src={vid} controls className="w-full object-contain bg-black/5 h-36" />
                       ))}
                     </div>
                   )}
@@ -554,7 +554,7 @@ function CommentItem({ comment, ctrl, onReply }: { comment: CommentType; ctrl: C
       <div className="flex items-start gap-2.5">
         <div className="h-7 w-7 shrink-0 rounded-full bg-gradient-primary grid place-items-center text-white text-[10px] font-bold overflow-hidden">
           {comment.userId?.profilePicture ? (
-            <img src={comment.userId.profilePicture} alt="" className="h-full w-full object-cover" />
+            <img src={comment.userId.profilePicture} alt="" className="h-full w-full object-contain bg-black/5" />
           ) : (comment.userId?.name?.charAt(0)?.toUpperCase() || "U")}
         </div>
         <div className="flex-1 min-w-0">
@@ -579,7 +579,7 @@ function CommentItem({ comment, ctrl, onReply }: { comment: CommentType; ctrl: C
             <div key={reply._id} className="flex items-start gap-2.5 mb-2">
               <div className="h-6 w-6 shrink-0 rounded-full bg-gradient-primary grid place-items-center text-white text-[9px] font-bold overflow-hidden">
                 {reply.userId?.profilePicture ? (
-                  <img src={reply.userId.profilePicture} alt="" className="h-full w-full object-cover" />
+                  <img src={reply.userId.profilePicture} alt="" className="h-full w-full object-contain bg-black/5" />
                 ) : (reply.userId?.name?.charAt(0)?.toUpperCase() || "U")}
               </div>
               <div className="flex-1 min-w-0">
@@ -671,7 +671,7 @@ function UserProfileModal({ ctrl }: { ctrl: CommunityController }) {
             <div className="flex flex-col items-center">
               <div className="h-20 w-20 rounded-full border-4 border-white/30 overflow-hidden bg-white/20 grid place-items-center text-white text-3xl font-bold">
                 {profile.user.profilePicture ? (
-                  <img src={profile.user.profilePicture} alt="" className="h-full w-full object-cover" />
+                  <img src={profile.user.profilePicture} alt="" className="h-full w-full object-contain bg-black/5" />
                 ) : (profile.user.name?.charAt(0)?.toUpperCase() || "U")}
               </div>
               <p className="mt-3 text-lg font-bold text-white">{profile.user.name}</p>
@@ -797,7 +797,7 @@ function Sidebar({ ctrl }: { ctrl: CommunityController }) {
                 className="flex items-center gap-2 w-full text-xs hover:bg-secondary/40 rounded-lg px-2 py-1.5"
               >
                 <div className="h-6 w-6 rounded-full bg-gradient-primary grid place-items-center text-white text-[9px] font-bold overflow-hidden shrink-0">
-                  {member.profilePicture ? <img src={member.profilePicture} alt="" className="h-full w-full object-cover" /> : member.name.charAt(0).toUpperCase()}
+                  {member.profilePicture ? <img src={member.profilePicture} alt="" className="h-full w-full object-contain bg-black/5" /> : member.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="text-left min-w-0">
                   <p className="font-medium truncate">{member.name}</p>
@@ -816,7 +816,7 @@ function Sidebar({ ctrl }: { ctrl: CommunityController }) {
             {ctrl.recentDonations.map((d) => (
               <div key={d._id} className="flex items-start gap-2 text-xs">
                 {d.images?.[0] && (
-                  <img src={d.images[0]} alt="" className="h-8 w-8 rounded-lg object-cover shrink-0" />
+                  <img src={d.images[0]} alt="" className="h-8 w-8 rounded-lg object-contain bg-black/5 shrink-0" />
                 )}
                 <div className="min-w-0">
                   <p className="font-medium truncate">{d.title || d.content.slice(0, 40)}</p>

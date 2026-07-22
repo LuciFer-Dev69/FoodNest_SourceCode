@@ -10,6 +10,7 @@ const notificationSchema = new mongoose.Schema({
       "donation_created", "donation_claimed", "donation_completed",
       "meal_reminder", "meal_saved",
       "community_like", "community_comment", "community_reply",
+      "food_connect_pickup", "food_connect_complete",
       "system",
     ],
     required: true,

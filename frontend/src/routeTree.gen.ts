@@ -25,6 +25,8 @@ import { Route as AppDonationsRouteImport } from './routes/app.donations'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppCommunityRouteImport } from './routes/app.community'
 import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
+import { Route as AppFoodConnectIndexRouteImport } from './routes/app.food-connect.index'
+import { Route as AppFoodConnectIdRouteImport } from './routes/app.food-connect.$id'
 import { Route as AppCommunitySavedRouteImport } from './routes/app.community.saved'
 import { Route as AppCommunityNearbyRouteImport } from './routes/app.community.nearby'
 import { Route as AppCommunityDonationMapRouteImport } from './routes/app.community.donation-map'
@@ -109,6 +111,16 @@ const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => AppRoute,
 } as any)
+const AppFoodConnectIndexRoute = AppFoodConnectIndexRouteImport.update({
+  id: '/food-connect/',
+  path: '/food-connect/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFoodConnectIdRoute = AppFoodConnectIdRouteImport.update({
+  id: '/food-connect/$id',
+  path: '/food-connect/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCommunitySavedRoute = AppCommunitySavedRouteImport.update({
   id: '/saved',
   path: '/saved',
@@ -145,6 +157,8 @@ export interface FileRoutesByFullPath {
   '/app/community/donation-map': typeof AppCommunityDonationMapRoute
   '/app/community/nearby': typeof AppCommunityNearbyRoute
   '/app/community/saved': typeof AppCommunitySavedRoute
+  '/app/food-connect/$id': typeof AppFoodConnectIdRoute
+  '/app/food-connect/': typeof AppFoodConnectIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -165,6 +179,8 @@ export interface FileRoutesByTo {
   '/app/community/donation-map': typeof AppCommunityDonationMapRoute
   '/app/community/nearby': typeof AppCommunityNearbyRoute
   '/app/community/saved': typeof AppCommunitySavedRoute
+  '/app/food-connect/$id': typeof AppFoodConnectIdRoute
+  '/app/food-connect': typeof AppFoodConnectIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -187,6 +203,8 @@ export interface FileRoutesById {
   '/app/community/donation-map': typeof AppCommunityDonationMapRoute
   '/app/community/nearby': typeof AppCommunityNearbyRoute
   '/app/community/saved': typeof AppCommunitySavedRoute
+  '/app/food-connect/$id': typeof AppFoodConnectIdRoute
+  '/app/food-connect/': typeof AppFoodConnectIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -210,6 +228,8 @@ export interface FileRouteTypes {
     | '/app/community/donation-map'
     | '/app/community/nearby'
     | '/app/community/saved'
+    | '/app/food-connect/$id'
+    | '/app/food-connect/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -230,6 +250,8 @@ export interface FileRouteTypes {
     | '/app/community/donation-map'
     | '/app/community/nearby'
     | '/app/community/saved'
+    | '/app/food-connect/$id'
+    | '/app/food-connect'
   id:
     | '__root__'
     | '/'
@@ -251,6 +273,8 @@ export interface FileRouteTypes {
     | '/app/community/donation-map'
     | '/app/community/nearby'
     | '/app/community/saved'
+    | '/app/food-connect/$id'
+    | '/app/food-connect/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -375,6 +399,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAnalyticsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/food-connect/': {
+      id: '/app/food-connect/'
+      path: '/food-connect'
+      fullPath: '/app/food-connect/'
+      preLoaderRoute: typeof AppFoodConnectIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/food-connect/$id': {
+      id: '/app/food-connect/$id'
+      path: '/food-connect/$id'
+      fullPath: '/app/food-connect/$id'
+      preLoaderRoute: typeof AppFoodConnectIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/community/saved': {
       id: '/app/community/saved'
       path: '/saved'
@@ -427,6 +465,8 @@ interface AppRouteChildren {
   AppProfileRoute: typeof AppProfileRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppFoodConnectIdRoute: typeof AppFoodConnectIdRoute
+  AppFoodConnectIndexRoute: typeof AppFoodConnectIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -441,6 +481,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppProfileRoute: AppProfileRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
+  AppFoodConnectIdRoute: AppFoodConnectIdRoute,
+  AppFoodConnectIndexRoute: AppFoodConnectIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

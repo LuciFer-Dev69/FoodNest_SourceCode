@@ -1,6 +1,20 @@
-export type DonationStatus = "Available" | "Reserved" | "Completed" | "Expired";
+export type DonationStatus = "Available" | "Reserved" | "Completed" | "Expired" | "Cancelled";
+
+export type PickupLocation = {
+  latitude: number | null;
+  longitude: number | null;
+  address: string;
+  country: string;
+  city: string;
+};
 
 export type Donor = {
+  id: string;
+  name: string;
+  email: string;
+};
+
+export type Claimant = {
   id: string;
   name: string;
   email: string;
@@ -22,8 +36,14 @@ export type Donation = {
   image: string | null;
   status: DonationStatus;
   claimedBy: string | null;
+  claimant: Claimant | null;
   donor: Donor;
   isOwner: boolean;
+  isClaimant: boolean;
+  pickupLocation: PickupLocation;
+  deliveryMethod: "self_pickup" | "third_party";
+  claimedAt: string | null;
+  completedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -51,7 +71,7 @@ export type SortOption = {
 
 export const CATEGORIES = ["All", "Produce", "Dairy", "Bakery", "Pantry", "Meat", "Other"] as const;
 
-export const STATUS_FILTERS = ["All", "Available", "Reserved", "Completed"] as const;
+export const STATUS_FILTERS = ["All", "Available", "Reserved", "Completed", "Cancelled"] as const;
 
 export const SORT_OPTIONS: SortOption[] = [
   { label: "Newest first", value: "-createdAt" },
@@ -69,6 +89,7 @@ export const STATUS_LABELS: Record<DonationStatus, string> = {
   Reserved: "Reserved",
   Completed: "Completed",
   Expired: "Expired",
+  Cancelled: "Cancelled",
 };
 
 export const STATUS_BADGES: Record<DonationStatus, string> = {
@@ -76,6 +97,7 @@ export const STATUS_BADGES: Record<DonationStatus, string> = {
   Reserved: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
   Completed: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
   Expired: "bg-red-500/15 text-red-600 dark:text-red-400",
+  Cancelled: "bg-gray-500/15 text-gray-600 dark:text-gray-400",
 };
 
 export const PLACEHOLDER_IMAGE = null;

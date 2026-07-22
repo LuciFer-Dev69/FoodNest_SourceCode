@@ -15,6 +15,7 @@ import analyticsRoutes from "./routes/analyticsRoutes.js";
 import communityRoutes from "./routes/communityRoutes.js";
 import settingsRoutes from "./routes/settingsRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
+import foodConnectRoutes from "./routes/foodConnectRoutes.js";
 
 dotenv.config();
 
@@ -37,9 +38,15 @@ app.use("/api/analytics", analyticsRoutes);
 app.use("/api/community", communityRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/profile", profileRoutes);
+app.use("/api/food-connect", foodConnectRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "healthy", timestamp: new Date() });
+});
+
+app.use((err, _req, res, _next) => {
+  console.error("Unhandled error:", err.message);
+  res.status(500).json({ message: err.message || "Internal server error" });
 });
 
 let server;

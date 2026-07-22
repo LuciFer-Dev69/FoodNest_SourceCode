@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { Donation, CATEGORIES } from "@/models/donations.model";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 
 export function useDonationsController() {
+  const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("All");
   const [sort, setSort] = useState("-createdAt");
@@ -128,6 +130,21 @@ export function useDonationsController() {
     }
   };
 
+  const handleCancel = async (id: string) => {
+    try {
+      const result = await api.put<{ message: string }>(`/api/donations/${id}/cancel`);
+      setItems((prev) => prev.filter((i) => i.id !== id));
+      toast.success(result.message || "Donation cancelled");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to cancel donation");
+    }
+  };
+
+  const handleOpenFoodConnect = (id: string) => {
+    navigate({ to: `/app/food-connect/${id}` });
+    handleDetailClose();
+  };
+
   return {
     q, setQ,
     cat, setCat,
@@ -149,6 +166,8 @@ export function useDonationsController() {
     handleSubmit,
     handleClaim,
     handleDelete,
+    handleCancel,
+    handleOpenFoodConnect,
   };
 }
 

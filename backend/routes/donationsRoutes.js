@@ -7,6 +7,7 @@ import {
   updateDonation,
   claimDonation,
   completeDonation,
+  cancelDonation,
   deleteDonation,
   getHistory,
 } from "../controllers/donationsController.js";
@@ -23,6 +24,7 @@ router.post("/", authenticateToken, upload.single("image"), createDonation);
 router.put("/:id", authenticateToken, upload.single("image"), updateDonation);
 router.put("/:id/claim", authenticateToken, claimDonation);
 router.put("/:id/complete", authenticateToken, completeDonation);
+router.put("/:id/cancel", authenticateToken, cancelDonation);
 router.delete("/:id", authenticateToken, deleteDonation);
 
 export default router;

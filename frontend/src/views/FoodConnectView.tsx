@@ -1,0 +1,231 @@
+import { motion } from "motion/react";
+import {
+  ArrowLeft, HeartHandshake, CheckCheck, XCircle, Truck, ExternalLink,
+  MapPin, CalendarDays, Clock, Package, User, Phone,
+} from "lucide-react";
+import { FoodConnectMap } from "@/components/donations/FoodConnectMap";
+import type { FoodConnectController } from "@/controllers/food-connect.controller";
+
+export function FoodConnectView({
+  data, loading, isDonor, isClaimant,
+  handleComplete, handleCancel, handleBack,
+}: FoodConnectController) {
+  if (loading) {
+    return (
+      <div className="grid place-items-center h-[80vh] text-muted-foreground text-sm">
+        Loading food connect…
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="grid place-items-center h-[80vh] text-muted-foreground text-sm">
+        Food connect not found.
+      </div>
+    );
+  }
+
+  const dl = data.deliveryMethod;
+
+  const thirdPartyLinks = data.pickupLocation.country === "Nepal"
+    ? [
+        { label: "Pathao", url: "https://pathao.com/delivery" },
+        { label: "InDrive", url: "https://indrive.com/delivery" },
+      ]
+    : [
+        { label: "Lalamove", url: "https://www.lalamove.com" },
+        { label: "GrabExpress", url: "https://www.grab.com/my/delivery" },
+      ];
+
+  return (
+    <div className="space-y-6 pb-8">
+      <button onClick={handleBack} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition">
+        <ArrowLeft className="h-4 w-4" /> Back to Donations
+      </button>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Column 1: Donation Details */}
+        <div className="glass-card rounded-3xl p-5 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/10">
+              {data.image ? (
+                <img src={data.image} alt="" className="h-full w-full rounded-2xl object-cover" />
+              ) : (
+                <HeartHandshake className="h-6 w-6 text-emerald-500" />
+              )}
+            </div>
+            <div>
+              <h2 className="text-lg font-bold">{data.foodName}</h2>
+              <p className="text-xs text-muted-foreground">{data.category}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <span className="text-muted-foreground">Quantity</span>
+              <p className="font-semibold">{data.quantity} {data.unit}</p>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Status</span>
+              <p className="font-semibold">{data.status}</p>
+            </div>
+            {data.pickupDate && (
+              <div>
+                <span className="text-muted-foreground">Pickup date</span>
+                <p className="font-semibold">{data.pickupDate}</p>
+              </div>
+            )}
+            {data.pickupTime && (
+              <div>
+                <span className="text-muted-foreground">Pickup time</span>
+                <p className="font-semibold">{data.pickupTime}</p>
+              </div>
+            )}
+          </div>
+
+          {data.description && (
+            <p className="text-sm text-muted-foreground">{data.description}</p>
+          )}
+
+          <div className="border-t border-border/40 pt-3 space-y-2 text-sm">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <MapPin className="h-4 w-4 shrink-0" />
+              <span>{data.pickupLocation.address || `${data.pickupLocation.city}, ${data.pickupLocation.country}`}</span>
+            </div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Truck className="h-4 w-4 shrink-0" />
+              <span>{dl === "self_pickup" ? "Self Pickup" : "Third-party Delivery"}</span>
+            </div>
+          </div>
+
+          {/* Third-party delivery links */}
+          {dl === "third_party" && data.status !== "Cancelled" && (
+            <div className="border-t border-border/40 pt-3 space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground">Book a delivery partner</p>
+              <div className="flex flex-wrap gap-2">
+                {thirdPartyLinks.map((link) => (
+                  <a
+                    key={link.label}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-2xl border border-border px-4 py-2 text-xs font-medium hover:bg-secondary"
+                  >
+                    <ExternalLink className="h-3 w-3" /> {link.label}
+                  </a>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground">Opens external site. No booking or payment handled here.</p>
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="border-t border-border/40 pt-3 space-y-2">
+            {isDonor && data.status === "Reserved" && (
+              <>
+                <button
+                  onClick={handleComplete}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-primary px-5 py-2.5 text-sm font-semibold text-white shadow-soft hover:shadow-lift"
+                >
+                  <CheckCheck className="h-4 w-4" /> Complete Delivery
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border px-5 py-2.5 text-sm font-semibold text-destructive hover:bg-destructive/5"
+                >
+                  <XCircle className="h-4 w-4" /> Cancel
+                </button>
+              </>
+            )}
+            {data.status === "Completed" && (
+              <p className="flex items-center justify-center gap-2 rounded-2xl bg-green-500/10 px-5 py-2.5 text-sm font-semibold text-green-600">
+                <CheckCheck className="h-4 w-4" /> Completed
+              </p>
+            )}
+            {data.status === "Cancelled" && (
+              <p className="flex items-center justify-center gap-2 rounded-2xl bg-red-500/10 px-5 py-2.5 text-sm font-semibold text-red-500">
+                <XCircle className="h-4 w-4" /> Cancelled
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Column 2: Map */}
+        <div className="glass-card rounded-3xl p-5 space-y-3">
+          <h3 className="text-sm font-bold flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-primary" /> Pickup Location
+          </h3>
+          <div className="text-xs text-muted-foreground">
+            {data.pickupLocation.address && <p>{data.pickupLocation.address}</p>}
+            <p>{data.pickupLocation.city}, {data.pickupLocation.country}</p>
+          </div>
+          <FoodConnectMap
+            donorLat={data.pickupLocation.latitude}
+            donorLng={data.pickupLocation.longitude}
+          />
+        </div>
+
+        {/* Column 3: People */}
+        <div className="glass-card rounded-3xl p-5 space-y-5">
+          <h3 className="text-sm font-bold flex items-center gap-2">
+            <User className="h-4 w-4 text-primary" /> People
+          </h3>
+
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 text-sm font-bold text-emerald-600">
+                {data.donor.profilePicture ? (
+                  <img src={data.donor.profilePicture} alt="" className="h-full w-full rounded-full object-cover" />
+                ) : (
+                  data.donor.name.charAt(0).toUpperCase()
+                )}
+              </div>
+              <div>
+                <p className="text-sm font-semibold">{data.donor.name}</p>
+                <p className="text-xs text-muted-foreground">Donor</p>
+                {isDonor && <span className="text-[10px] text-primary font-semibold">You</span>}
+              </div>
+            </div>
+
+            {data.claimant && (
+              <div className="flex items-center gap-3">
+                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-gradient-to-br from-blue-500/20 to-blue-600/10 text-sm font-bold text-blue-600">
+                  {data.claimant.profilePicture ? (
+                    <img src={data.claimant.profilePicture} alt="" className="h-full w-full rounded-full object-cover" />
+                  ) : (
+                    data.claimant.name.charAt(0).toUpperCase()
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">{data.claimant.name}</p>
+                  <p className="text-xs text-muted-foreground">Recipient</p>
+                  {isClaimant && <span className="text-[10px] text-primary font-semibold">You</span>}
+                </div>
+              </div>
+            )}
+
+            {!data.claimant && (
+              <div className="text-center py-4 text-sm text-muted-foreground">
+                No recipient yet
+              </div>
+            )}
+          </div>
+
+          {data.claimedAt && (
+            <div className="border-t border-border/40 pt-3 text-xs text-muted-foreground space-y-1">
+              <div className="flex items-center gap-2">
+                <Clock className="h-3 w-3" /> Claimed {new Date(data.claimedAt).toLocaleDateString()}
+              </div>
+              {data.completedAt && (
+                <div className="flex items-center gap-2">
+                  <CheckCheck className="h-3 w-3" /> Completed {new Date(data.completedAt).toLocaleDateString()}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

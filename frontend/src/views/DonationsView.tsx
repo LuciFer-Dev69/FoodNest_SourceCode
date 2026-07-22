@@ -1,12 +1,14 @@
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Search, Plus, Trash2, Edit2, X, ArrowUpDown, HeartHandshake,
-  MapPin, Clock, ImageUp, Users,
+  MapPin, Clock, ImageUp, Users, Truck, ExternalLink,
 } from "lucide-react";
 import { PageHeader, Panel } from "@/components/app/primitives";
 import {
   CATEGORIES, SORT_OPTIONS, STATUS_BADGES,
 } from "@/models/donations.model";
+import { LocationPicker } from "@/components/donations/LocationPicker";
 import type { DonationsController } from "@/controllers/donations.controller";
 
 function timeAgo(dateStr: string) {
@@ -64,7 +66,31 @@ export function DonationsView({
   handleSubmit,
   handleClaim,
   handleDelete,
+  handleCancel,
+  handleOpenFoodConnect,
 }: DonationsController) {
+  const [pickupCountry, setPickupCountry] = useState("Nepal");
+  const [pickupCity, setPickupCity] = useState("Kathmandu");
+  const [pickupLat, setPickupLat] = useState<number | null>(null);
+  const [pickupLng, setPickupLng] = useState<number | null>(null);
+  const [pickupAddress, setPickupAddress] = useState("");
+
+  useEffect(() => {
+    if (editingItem?.pickupLocation) {
+      const pl = editingItem.pickupLocation;
+      setPickupCountry(pl.country || "Nepal");
+      setPickupCity(pl.city || "Kathmandu");
+      setPickupLat(pl.latitude ?? null);
+      setPickupLng(pl.longitude ?? null);
+      setPickupAddress(pl.address || "");
+    } else if (!editId) {
+      setPickupCountry("Nepal");
+      setPickupCity("Kathmandu");
+      setPickupLat(null);
+      setPickupLng(null);
+      setPickupAddress("");
+    }
+  }, [editingItem, editId]);
   if (loading) {
     return (
       <>
@@ -174,16 +200,17 @@ export function DonationsView({
                     {d.quantity} {d.unit} &middot; {d.category}
                   </p>
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                    {d.city && (
-                      <span className="inline-flex items-center gap-1">
-                        <MapPin className="h-3 w-3" /> {d.city}
-                      </span>
-                    )}
+                    <span className="inline-flex items-center gap-1">
+                      <MapPin className="h-3 w-3" /> {d.pickupLocation?.city || d.city || "N/A"}
+                    </span>
                     {d.pickupTime && (
                       <span className="inline-flex items-center gap-1">
                         <Clock className="h-3 w-3" /> {d.pickupTime}
                       </span>
                     )}
+                    <span className="inline-flex items-center gap-1">
+                      <Truck className="h-3 w-3" /> {d.deliveryMethod === "self_pickup" ? "Self Pickup" : "Third-party"}
+                    </span>
                     <span className="inline-flex items-center gap-1 ml-auto">
                       <Users className="h-3 w-3" /> {d.donor.name}
                     </span>
@@ -349,40 +376,6 @@ export function DonationsView({
                     </label>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <label className="block">
-                      <span className="mb-1 block text-sm font-medium">City</span>
-                      <input
-                        name="city"
-                        defaultValue={editingItem?.city ?? ""}
-                        type="text"
-                        placeholder="City"
-                        className="w-full rounded-2xl border border-border bg-background/70 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/40"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="mb-1 block text-sm font-medium">Landmark</span>
-                      <input
-                        name="landmark"
-                        defaultValue={editingItem?.landmark ?? ""}
-                        type="text"
-                        placeholder="Nearby landmark"
-                        className="w-full rounded-2xl border border-border bg-background/70 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/40"
-                      />
-                    </label>
-                  </div>
-
-                  <label className="block">
-                    <span className="mb-1 block text-sm font-medium">Address</span>
-                    <input
-                      name="address"
-                      defaultValue={editingItem?.address ?? ""}
-                      type="text"
-                      placeholder="Full pickup address"
-                      className="w-full rounded-2xl border border-border bg-background/70 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/40"
-                    />
-                  </label>
-
                   <label className="block">
                     <span className="mb-1 block text-sm font-medium">Image</span>
                     <span className="flex items-center gap-2 rounded-2xl border border-border bg-background/70 px-3 py-2.5 text-sm text-muted-foreground cursor-pointer hover:border-primary/40">
@@ -391,6 +384,63 @@ export function DonationsView({
                       <input name="image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" />
                     </span>
                   </label>
+
+                  <div className="border-t border-border/40 pt-3">
+                    <span className="mb-3 block text-sm font-bold">Pickup Location</span>
+                    <div className="space-y-3">
+                      <label className="block">
+                        <span className="mb-1 block text-sm font-medium">Country</span>
+                        <select
+                          value={pickupCountry}
+                          onChange={(e) => {
+                            setPickupCountry(e.target.value);
+                            setPickupCity(e.target.value === "Nepal" ? "Kathmandu" : "Kuala Lumpur");
+                            setPickupLat(null);
+                            setPickupLng(null);
+                          }}
+                          className="w-full rounded-2xl border border-border bg-background/70 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+                        >
+                          <option value="Nepal">Nepal</option>
+                          <option value="Malaysia">Malaysia</option>
+                        </select>
+                      </label>
+
+                      <LocationPicker
+                        country={pickupCountry}
+                        latitude={pickupLat}
+                        longitude={pickupLng}
+                        onLocationChange={(lat, lng) => { setPickupLat(lat); setPickupLng(lng); }}
+                      />
+
+                      <label className="block">
+                        <span className="mb-1 block text-sm font-medium">Pickup address</span>
+                        <input
+                          value={pickupAddress}
+                          onChange={(e) => setPickupAddress(e.target.value)}
+                          placeholder="e.g. Baneshwor, Kathmandu"
+                          className="w-full rounded-2xl border border-border bg-background/70 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+                        />
+                      </label>
+
+                      <input type="hidden" name="pickupLocation" value={JSON.stringify({ latitude: pickupLat, longitude: pickupLng, address: pickupAddress, country: pickupCountry, city: pickupCity })} />
+                    </div>
+                  </div>
+
+                  <div className="border-t border-border/40 pt-3">
+                    <span className="mb-3 block text-sm font-bold">Delivery Method</span>
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="radio" name="deliveryMethod" value="self_pickup" defaultChecked
+                          className="accent-primary" />
+                        <Truck className="h-4 w-4 text-muted-foreground" /> Self Pickup
+                      </label>
+                      <label className="flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="radio" name="deliveryMethod" value="third_party"
+                          className="accent-primary" />
+                        <ExternalLink className="h-4 w-4 text-muted-foreground" /> Third-party Delivery
+                      </label>
+                    </div>
+                  </div>
 
                   {!editId && (
                     <label className="flex items-center gap-2 text-sm">
@@ -477,10 +527,10 @@ export function DonationsView({
                     <span className="text-muted-foreground">Category</span>
                     <p className="font-semibold">{detailItem.category}</p>
                   </div>
-                  {detailItem.city && (
+                  {detailItem.pickupLocation?.city && (
                     <div>
-                      <span className="text-muted-foreground">City</span>
-                      <p className="font-semibold">{detailItem.city}</p>
+                      <span className="text-muted-foreground">Pickup at</span>
+                      <p className="font-semibold">{detailItem.pickupLocation.city}</p>
                     </div>
                   )}
                   {detailItem.pickupTime && (
@@ -489,14 +539,17 @@ export function DonationsView({
                       <p className="font-semibold">{detailItem.pickupTime}</p>
                     </div>
                   )}
+                  <div>
+                    <span className="text-muted-foreground">Delivery</span>
+                    <p className="font-semibold">{detailItem.deliveryMethod === "self_pickup" ? "Self Pickup" : "Third-party"}</p>
+                  </div>
                 </div>
 
-                {(detailItem.address || detailItem.landmark) && (
+                {(detailItem.pickupLocation?.address) && (
                   <div className="text-sm">
                     <span className="text-muted-foreground">Pickup address</span>
                     <p className="font-semibold">
-                      {detailItem.address}
-                      {detailItem.landmark && <span className="text-muted-foreground"> ({detailItem.landmark})</span>}
+                      {detailItem.pickupLocation.address}
                     </p>
                   </div>
                 )}
@@ -516,10 +569,15 @@ export function DonationsView({
                       Claim Donation
                     </button>
                   )}
-                  {detailItem.status === "Reserved" && (
-                    <span className="flex-1 text-center text-sm font-semibold text-amber-500">Reserved</span>
+                  {(detailItem.status === "Reserved" || detailItem.status === "Completed") && (detailItem.isOwner || detailItem.isClaimant) && (
+                    <button
+                      onClick={() => handleOpenFoodConnect(detailItem.id)}
+                      className="flex-1 rounded-2xl bg-gradient-primary px-5 py-2.5 text-sm font-semibold text-white shadow-soft hover:shadow-lift"
+                    >
+                      Open Food Connect
+                    </button>
                   )}
-                  {detailItem.isOwner && (
+                  {detailItem.status === "Available" && detailItem.isOwner && (
                     <span className="flex-1 text-center text-sm text-muted-foreground">Your donation</span>
                   )}
                 </div>

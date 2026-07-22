@@ -5,20 +5,22 @@ import mongoose from "mongoose";
 
 const VALID_SORT = ["createdAt", "-createdAt", "foodName", "-foodName", "quantity", "-quantity", "expirationDate", "-expirationDate"];
 
-async function notify(userId, message, type = "info") {
+async function notify(userId, message, type = "info", relatedId = null) {
   try {
     let notifType = "system";
     let title = message;
     if (type === "success" && message.includes("claimed")) notifType = "donation_claimed";
     else if (message.includes("published") || message.includes("created")) notifType = "donation_created";
     else if (message.includes("completed") || message.includes("Completed")) notifType = "donation_completed";
+    else if (message.includes("cancelled") || message.includes("Cancelled")) notifType = "donation_completed";
+    else if (message.includes("confirmed") || message.includes("Pickup")) notifType = "donation_claimed";
     await Notification.create({
       recipientUser: userId,
       senderUser: null,
       type: notifType,
       title,
       message: "",
-      relatedId: null,
+      relatedId,
       isRead: false,
     });
   } catch {
@@ -31,6 +33,10 @@ function formatDonation(doc, currentUserId) {
   const ownerId = doc.userId?._id ? doc.userId._id.toString() : doc.userId?.toString();
   const donorName = doc.userId?.name || "Unknown";
   const donorEmail = doc.userId?.email || "";
+
+  const claimedById = doc.claimedBy?._id ? doc.claimedBy._id.toString() : doc.claimedBy?.toString() || null;
+  const claimantName = doc.claimedBy?.name || null;
+  const claimantEmail = doc.claimedBy?.email || null;
 
   return {
     id: idStr,
@@ -47,9 +53,15 @@ function formatDonation(doc, currentUserId) {
     landmark: doc.landmark,
     image: doc.image,
     status: doc.status,
-    claimedBy: doc.claimedBy?.toString() || null,
+    claimedBy: claimedById,
+    claimant: claimedById ? { id: claimedById, name: claimantName, email: claimantEmail } : null,
     donor: { id: ownerId, name: donorName, email: donorEmail },
     isOwner: ownerId === currentUserId,
+    isClaimant: claimedById === currentUserId,
+    pickupLocation: doc.pickupLocation || { latitude: null, longitude: null, address: "", country: "", city: "" },
+    deliveryMethod: doc.deliveryMethod || "self_pickup",
+    claimedAt: doc.claimedAt || null,
+    completedAt: doc.completedAt || null,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };
@@ -167,7 +179,7 @@ export async function getDonationById(req, res) {
 }
 
 export async function createDonation(req, res) {
-  const { foodName, category, quantity, unit, description, expirationDate, pickupDate, pickupTime, address, city, landmark } = req.body;
+  const { foodName, category, quantity, unit, description, expirationDate, pickupDate, pickupTime, address, city, landmark, pickupLocation, deliveryMethod } = req.body;
 
   if (!foodName) return res.status(400).json({ message: "Food name is required." });
   if (!quantity || parseFloat(quantity) <= 0) return res.status(400).json({ message: "Quantity must be greater than zero." });
@@ -181,6 +193,18 @@ export async function createDonation(req, res) {
 
   try {
     const image = req.file ? `/uploads/${req.file.filename}` : null;
+
+    let parsedPickupLocation = { latitude: null, longitude: null, address: "", country: "", city: "" };
+    if (pickupLocation) {
+      const pl = typeof pickupLocation === "string" ? JSON.parse(pickupLocation) : pickupLocation;
+      parsedPickupLocation = {
+        latitude: pl.latitude || null,
+        longitude: pl.longitude || null,
+        address: pl.address || "",
+        country: pl.country || "",
+        city: pl.city || "",
+      };
+    }
 
     const doc = await Donation.create({
       userId: req.user.id,
@@ -197,6 +221,8 @@ export async function createDonation(req, res) {
       landmark: landmark || "",
       image,
       status: "Available",
+      pickupLocation: parsedPickupLocation,
+      deliveryMethod: deliveryMethod || "self_pickup",
     });
 
     const populated = await Donation.findById(doc._id)
@@ -218,9 +244,14 @@ export async function updateDonation(req, res) {
     if (doc.userId.toString() !== req.user.id) return res.status(403).json({ message: "You can only edit your own donations." });
     if (doc.status !== "Available") return res.status(400).json({ message: "Only available donations can be edited." });
 
-    const { foodName, category, quantity, unit, description, expirationDate, pickupDate, pickupTime, address, city, landmark } = req.body;
+    const { foodName, category, quantity, unit, description, expirationDate, pickupDate, pickupTime, address, city, landmark, pickupLocation, deliveryMethod } = req.body;
 
     if (foodName !== undefined && !foodName) return res.status(400).json({ message: "Food name is required." });
+
+    const getPL = (val) => {
+      const pl = typeof val === "string" ? JSON.parse(val) : val;
+      return pl ? { latitude: pl.latitude || null, longitude: pl.longitude || null, address: pl.address || "", country: pl.country || "", city: pl.city || "" } : undefined;
+    };
 
     const updates = {};
     if (foodName !== undefined) updates.foodName = foodName;
@@ -244,6 +275,8 @@ export async function updateDonation(req, res) {
     if (address !== undefined) updates.address = address;
     if (city !== undefined) updates.city = city;
     if (landmark !== undefined) updates.landmark = landmark;
+    if (pickupLocation !== undefined) updates["pickupLocation"] = getPL(pickupLocation);
+    if (deliveryMethod !== undefined) updates.deliveryMethod = deliveryMethod;
 
     if (req.file) {
       updates.image = `/uploads/${req.file.filename}`;
@@ -270,6 +303,7 @@ export async function claimDonation(req, res) {
 
     doc.status = "Reserved";
     doc.claimedBy = new mongoose.Types.ObjectId(req.user.id);
+    doc.claimedAt = new Date();
     await doc.save();
 
     const populated = await Donation.findById(doc._id)
@@ -293,7 +327,12 @@ export async function completeDonation(req, res) {
     if (doc.status !== "Reserved") return res.status(400).json({ message: "Only reserved donations can be marked as completed." });
 
     doc.status = "Completed";
+    doc.completedAt = new Date();
     await doc.save();
+
+    if (doc.claimedBy) {
+      notify(doc.claimedBy.toString(), `Donation "${doc.foodName}" has been completed. Thank you!`, "success");
+    }
 
     notify(req.user.id, `Donation "${doc.foodName}" marked as completed.`, "success");
 
@@ -317,6 +356,33 @@ export async function deleteDonation(req, res) {
     res.json({ message: "Donation deleted successfully", foodName: doc.foodName });
   } catch (err) {
     res.status(500).json({ message: "Failed to delete donation", error: err.message });
+  }
+}
+
+export async function cancelDonation(req, res) {
+  try {
+    const doc = await Donation.findById(req.params.id);
+    if (!doc) return res.status(404).json({ message: "Donation not found." });
+    if (doc.userId.toString() !== req.user.id) return res.status(403).json({ message: "You can only cancel your own donations." });
+    if (doc.status === "Completed" || doc.status === "Cancelled") return res.status(400).json({ message: "Cannot cancel this donation." });
+
+    const wasClaimed = doc.status === "Reserved" && doc.claimedBy;
+    const claimantId = doc.claimedBy?.toString();
+
+    doc.status = "Cancelled";
+    doc.claimedBy = null;
+    doc.claimedAt = null;
+    await doc.save();
+
+    if (wasClaimed && claimantId) {
+      notify(claimantId, `Donation "${doc.foodName}" has been cancelled by the donor.`, "info", doc._id);
+    }
+
+    notify(req.user.id, `Donation "${doc.foodName}" cancelled.`, "info");
+
+    res.json({ message: "Donation cancelled", id: doc._id });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to cancel donation", error: err.message });
   }
 }
 
