@@ -30,6 +30,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { useAuth } from "@/hooks/use-auth";
 import { useHistoryController } from "@/controllers/history.controller";
 import { api } from "@/lib/api";
+import { useLocale } from "@/lib/i18n";
 import type { NotificationItem } from "@/models/notification.model";
 
 const NOTIF_ICON: Record<string, any> = {
@@ -70,18 +71,16 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(hours / 24)}d`;
 }
 
-
-
 const nav = [
-  { to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/app/inventory", label: "Inventory", icon: Package },
-  { to: "/app/donations", label: "Donations", icon: HeartHandshake },
-  { to: "/app/community", label: "Community", icon: MessageSquare },
-  { to: "/app/analytics", label: "Analytics", icon: BarChart3 },
-  { to: "/app/planner", label: "Meal Planner", icon: CalendarDays },
-  { to: "/app/notifications", label: "Notifications", icon: Bell },
-  { to: "/app/settings", label: "Settings", icon: Settings },
-  { to: "/app/profile", label: "Profile", icon: UserIcon },
+  { to: "/app/dashboard", labelKey: "nav.dashboard", icon: LayoutDashboard },
+  { to: "/app/inventory", labelKey: "nav.inventory", icon: Package },
+  { to: "/app/donations", labelKey: "nav.donations", icon: HeartHandshake },
+  { to: "/app/community", labelKey: "nav.community", icon: MessageSquare },
+  { to: "/app/analytics", labelKey: "nav.analytics", icon: BarChart3 },
+  { to: "/app/planner", labelKey: "nav.planner", icon: CalendarDays },
+  { to: "/app/notifications", labelKey: "nav.notifications", icon: Bell },
+  { to: "/app/settings", labelKey: "nav.settings", icon: Settings },
+  { to: "/app/profile", labelKey: "nav.profile", icon: UserIcon },
 ] as const;
 
 export default function AppShell() {
@@ -89,6 +88,7 @@ export default function AppShell() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const { isDark, toggle } = useTheme();
   const { getInitials, logout, user } = useAuth();
+  const { t } = useLocale();
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifItems, setNotifItems] = useState<NotificationItem[]>([]);
   const [notifCount, setNotifCount] = useState(0);
@@ -101,7 +101,9 @@ export default function AppShell() {
       ]);
       setNotifItems(listRes.items);
       setNotifCount(listRes.unreadCount);
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
   }, []);
 
   useEffect(() => {
@@ -146,7 +148,9 @@ export default function AppShell() {
       await api.patch("/api/notifications/read-all");
       setNotifCount(0);
       setNotifItems((prev) => prev.map((n) => ({ ...n, isRead: true })));
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
   }, []);
 
   useEffect(() => {
@@ -165,7 +169,6 @@ export default function AppShell() {
       {/* Sidebar */}
       <aside className="fixed inset-y-3 left-3 z-40 hidden w-64 lg:block">
         <div className="glass-card flex h-full flex-col rounded-3xl p-4">
-
           <Link to="/" className="mb-6 flex items-center gap-2 px-2">
             <span className="grid h-9 w-9 place-items-center rounded-2xl bg-gradient-primary text-white shadow-soft">
               <Leaf className="h-4 w-4" />
@@ -187,7 +190,7 @@ export default function AppShell() {
                   }`}
                 >
                   <Icon className="h-4 w-4" />
-                  <span>{n.label}</span>
+                  <span>{t(n.labelKey)}</span>
                   {active && (
                     <motion.span
                       layoutId="active-pill"
@@ -224,7 +227,9 @@ export default function AppShell() {
             return (
               <div className="mt-3 rounded-2xl p-4">
                 <p className="text-sm font-semibold">History</p>
-                <p className="mt-1 text-xs text-muted-foreground">Your claimed donations & notifications</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Your claimed donations & notifications
+                </p>
                 <ul className="mt-3 space-y-2 max-h-44 overflow-auto pr-1">
                   {loading && <li className="text-xs text-muted-foreground">Loading…</li>}
                   {!loading && items.length === 0 && (
@@ -232,11 +237,24 @@ export default function AppShell() {
                   )}
                   {!loading &&
                     items.map((h, idx) => (
-                      <li key={h.id ?? idx} className="flex items-start gap-3 rounded-xl bg-background/40 px-3 py-2">
-                        <span className="grid h-8 w-8 place-items-center rounded-2xl bg-secondary">{h.kind === "donation" ? <HeartHandshake className="h-4 w-4" /> : <Bell className="h-4 w-4" />}</span>
+                      <li
+                        key={h.id ?? idx}
+                        className="flex items-start gap-3 rounded-xl bg-background/40 px-3 py-2"
+                      >
+                        <span className="grid h-8 w-8 place-items-center rounded-2xl bg-secondary">
+                          {h.kind === "donation" ? (
+                            <HeartHandshake className="h-4 w-4" />
+                          ) : (
+                            <Bell className="h-4 w-4" />
+                          )}
+                        </span>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-xs font-semibold">{h.title}</p>
-                          {h.subtitle && <p className="truncate text-[11px] text-muted-foreground">{h.subtitle}</p>}
+                          {h.subtitle && (
+                            <p className="truncate text-[11px] text-muted-foreground">
+                              {h.subtitle}
+                            </p>
+                          )}
                         </div>
                         {h.createdAt && (
                           <Clock className="mt-1 h-3.5 w-3.5 text-muted-foreground" />
@@ -247,7 +265,6 @@ export default function AppShell() {
               </div>
             );
           })()}
-
         </div>
       </aside>
 
@@ -259,7 +276,7 @@ export default function AppShell() {
             className="flex flex-1 items-center gap-2 rounded-xl bg-background/60 px-3 py-2 text-left text-sm text-muted-foreground hover:bg-background"
           >
             <Search className="h-4 w-4" />
-            Search inventory, donations, recipes…
+            {t("nav.search")}
             <kbd className="ml-auto rounded-md border border-border bg-background px-1.5 py-0.5 text-[10px] font-semibold text-foreground/70">
               ⌘K
             </kbd>
@@ -299,7 +316,10 @@ export default function AppShell() {
                   <div className="flex items-center justify-between px-4 py-3 border-b border-border/40">
                     <h3 className="text-sm font-bold">Notifications</h3>
                     {notifCount > 0 && (
-                      <button onClick={handleMarkAllRead} className="text-xs text-primary font-semibold hover:underline">
+                      <button
+                        onClick={handleMarkAllRead}
+                        className="text-xs text-primary font-semibold hover:underline"
+                      >
                         Mark all read
                       </button>
                     )}
@@ -322,14 +342,24 @@ export default function AppShell() {
                               !item.isRead ? "bg-primary/5" : ""
                             }`}
                           >
-                            <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-background/80 ${color}`}>
+                            <span
+                              className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-background/80 ${color}`}
+                            >
                               <Icon className="h-4 w-4" />
                             </span>
                             <div className="flex-1 min-w-0">
-                              <p className={`truncate ${!item.isRead ? "font-bold" : "font-medium"}`}>{item.title}</p>
-                              <p className="text-[11px] text-muted-foreground">{timeAgo(item.createdAt)}</p>
+                              <p
+                                className={`truncate ${!item.isRead ? "font-bold" : "font-medium"}`}
+                              >
+                                {item.title}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground">
+                                {timeAgo(item.createdAt)}
+                              </p>
                             </div>
-                            {!item.isRead && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />}
+                            {!item.isRead && (
+                              <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
+                            )}
                           </button>
                         );
                       })
@@ -346,7 +376,10 @@ export default function AppShell() {
               )}
             </AnimatePresence>
           </div>
-          <Link to="/app/profile" className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-primary text-sm font-bold text-white">
+          <Link
+            to="/app/profile"
+            className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-primary text-sm font-bold text-white"
+          >
             {getInitials()}
           </Link>
         </div>
@@ -382,8 +415,14 @@ export default function AppShell() {
             >
               <div className="flex items-center gap-2 border-b border-border/60 px-4 py-3">
                 <Search className="h-4 w-4 text-muted-foreground" />
-                <input autoFocus placeholder="Type a command…" className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" />
-                <kbd className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[10px] font-semibold">ESC</kbd>
+                <input
+                  autoFocus
+                  placeholder={t("nav.searchPlaceholder")}
+                  className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                />
+                <kbd className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[10px] font-semibold">
+                  ESC
+                </kbd>
               </div>
               <ul className="max-h-80 overflow-y-auto p-2 text-sm">
                 {nav.map((n) => {
@@ -396,7 +435,9 @@ export default function AppShell() {
                         className="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-secondary"
                       >
                         <Icon className="h-4 w-4 text-muted-foreground" />
-                        <span>Go to {n.label}</span>
+                        <span>
+                          {t("nav.goTo")} {t(n.labelKey)}
+                        </span>
                       </Link>
                     </li>
                   );
