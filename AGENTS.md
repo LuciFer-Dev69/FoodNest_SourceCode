@@ -39,3 +39,31 @@ cd frontend && npm install && npm run dev
 # Backend (from project root)
 cd backend && npm install && npm start
 ```
+
+## Running Playwright E2E Tests
+
+Tests are in `frontend/tests/` and cover 3 use cases:
+1. **Register Users and Privacy Settings** (`use-case-1-register-settings.spec.ts`)
+2. **Manage Food Inventory** (`use-case-2-inventory.spec.ts`)
+3. **Browse Food Items and Claim Donations** (`use-case-3-browse-claim-donations.spec.ts`)
+
+**Prerequisites**: Backend (`localhost:3000`) and frontend (`localhost:8080`) must be running.
+
+```bash
+# Run all tests (from project root)
+cd frontend && npm test
+
+# Run a specific use case
+cd frontend && npx playwright test use-case-1-register-settings.spec.ts
+
+# Run with UI mode
+cd frontend && npm run test:ui
+
+# Show HTML report after run
+cd frontend && npx playwright show-report
+```
+
+### Screenshots
+- **On success**: Manual screenshots saved to `test-results/screenshots/{test-name}/{step-name}.png`
+- **On failure**: Playwright auto-captures screenshots with `screenshot: 'only-on-failure'` config
+- **Trace**: Available on first retry (`trace: 'on-first-retry'`)

@@ -50,3 +50,9 @@ backend/.env.*
 *.njsproj
 *.sln
 *.sw?
+
+# Playwright test outputs
+test-results/
+playwright-report/
+frontend/test-results/
+frontend/playwright-report/
