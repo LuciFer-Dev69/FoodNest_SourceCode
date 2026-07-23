@@ -6,8 +6,9 @@ export function generateUniqueEmail(): string {
 }
 
 export async function takeScreenshot(page: Page, testInfo: TestInfo, stepName: string): Promise<void> {
-  const sanitized = testInfo.title.replace(/[/\\?%*:|"<>]/g, '-').replace(/\s+/g, '-');
-  const screenshotDir = path.join('test-results', 'screenshots', sanitized);
+  const parsed = path.parse(testInfo.file);
+  const baseName = parsed.name.replace('.spec', '');
+  const screenshotDir = path.join('test-results', 'screenshots', baseName);
   const filePath = path.join(screenshotDir, `${stepName}.png`);
   await page.screenshot({ path: filePath, fullPage: true });
 }
@@ -53,6 +54,15 @@ export function getFutureDate(daysFromNow: number): string {
   const date = new Date();
   date.setDate(date.getDate() + daysFromNow);
   return date.toISOString().split('T')[0];
+}
+
+export async function logoutAndClear(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
+    window.dispatchEvent(new CustomEvent('auth-changed'));
+  });
+  await page.waitForTimeout(500);
 }
 
 export async function navigateBySidebar(page: Page, linkName: string, expectedUrl: string): Promise<void> {
