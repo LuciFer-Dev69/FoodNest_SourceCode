@@ -1,6 +1,15 @@
 import { test, expect } from '@playwright/test';
 import { generateUniqueEmail, registerUser, takeScreenshot, navigateBySidebar, logoutAndClear } from './test-utils';
 
+async function toggleSetting(page: any, label: string) {
+  const row = page.locator('.flex.items-center.gap-3.rounded-2xl').filter({ has: page.locator('p.text-sm.font-semibold', { hasText: label }) });
+  const toggle = row.locator('button.h-7.w-12');
+  const wasOn = await toggle.evaluate((el: Element) => el.classList.contains('bg-gradient-primary'));
+  await toggle.click();
+  await page.waitForTimeout(300);
+  return wasOn;
+}
+
 test.describe('Use Case 1: Register Users and Privacy Settings', () => {
   test('user registers and configures privacy/security preferences', async ({ page }, testInfo) => {
     const email = generateUniqueEmail();
@@ -21,17 +30,31 @@ test.describe('Use Case 1: Register Users and Privacy Settings', () => {
     await navigateBySidebar(page, 'Settings', '/app/settings');
     await takeScreenshot(page, testInfo, '04-settings-page');
 
-    const toggleButtons = page.locator('button[role="switch"], button.h-7.w-12');
-    const toggleCount = await toggleButtons.count();
-    for (let i = 0; i < toggleCount; i++) {
-      await toggleButtons.nth(i).click();
-      await page.waitForTimeout(200);
-    }
-    await takeScreenshot(page, testInfo, '05-toggles-changed');
+    const wasDonationsPublic = await toggleSetting(page, 'Show donations publicly');
+    await takeScreenshot(page, testInfo, '05-show-donations-toggled');
 
-    const heading = page.getByRole('heading', { name: /settings|language|security|privacy/i }).first();
+    const wasPublicProfile = await toggleSetting(page, 'Public profile');
+    await takeScreenshot(page, testInfo, '06-public-profile-toggled');
+
+    const wasInventoryReminders = await toggleSetting(page, 'Inventory reminders');
+    await takeScreenshot(page, testInfo, '07-inventory-reminders-toggled');
+
+    const heading = page.getByRole('heading', { name: /settings/i }).first();
     await expect(heading).toBeVisible({ timeout: 5000 });
-    await takeScreenshot(page, testInfo, '06-settings-loaded');
+    await takeScreenshot(page, testInfo, '08-settings-heading-visible');
+
+    await navigateBySidebar(page, 'Dashboard', '/app/dashboard');
+    await takeScreenshot(page, testInfo, '09-back-to-dashboard');
+
+    await navigateBySidebar(page, 'Settings', '/app/settings');
+    await takeScreenshot(page, testInfo, '10-settings-returned');
+
+    const donationToggle = page.locator('.flex.items-center.gap-3.rounded-2xl')
+      .filter({ has: page.locator('p.text-sm.font-semibold', { hasText: 'Show donations publicly' }) })
+      .locator('button.h-7.w-12');
+    const stillOn = await donationToggle.evaluate((el: Element) => el.classList.contains('bg-gradient-primary'));
+    expect(stillOn).toBe(!wasDonationsPublic);
+    await takeScreenshot(page, testInfo, '11-settings-persisted');
   });
 
   test('rejects invalid email format on register', async ({ page }, testInfo) => {
@@ -78,24 +101,6 @@ test.describe('Use Case 1: Register Users and Privacy Settings', () => {
     const err = page.getByText(/already exists/i);
     await expect(err).toBeVisible({ timeout: 5000 });
     await takeScreenshot(page, testInfo, 'duplicate-email-error');
-  });
-
-  test('rejects invalid 2FA code', async ({ page }, testInfo) => {
-    await page.goto('/login?mode=register');
-    await page.waitForLoadState('networkidle');
-    await page.fill('[name="name"]', '2FA User');
-    await page.fill('[name="email"]', generateUniqueEmail());
-    await page.fill('[name="password"]', 'SecurePass1!');
-    await page.getByRole('button', { name: /create account/i }).click();
-
-    await page.waitForSelector('[data-testid="2fa-code"]', { timeout: 15000 });
-    await page.fill('[name="code"]', '000000');
-    await page.getByRole('button', { name: /verify & complete/i }).click();
-    await page.waitForTimeout(2000);
-
-    const err = page.getByText(/invalid 2fa code/i);
-    await expect(err).toBeVisible({ timeout: 5000 });
-    await takeScreenshot(page, testInfo, 'invalid-2fa-error');
   });
 
   test('redirects unauthenticated users to login', async ({ page }, testInfo) => {

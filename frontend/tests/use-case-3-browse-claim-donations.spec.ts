@@ -73,13 +73,18 @@ test.describe('Use Case 3: Browse Food Items and Claim Donations', () => {
     await page.waitForTimeout(1500);
     await takeScreenshot(page, testInfo, '07-donation-detail-modal');
 
+    await expect(page.getByText('5-7pm').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('Pickup date').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('Pickup time').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(futureExpiry).first()).toBeVisible({ timeout: 5000 });
+
     const claimBtn = page.getByRole('button', { name: /claim donation/i });
     await expect(claimBtn).toBeVisible({ timeout: 5000 });
     await claimBtn.click();
     await page.waitForTimeout(3000);
     await takeScreenshot(page, testInfo, '08-donation-claimed');
 
-    await page.getByText(/claimed|success/i).first().waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+    await expect(page.getByText(/donation claimed/i)).toBeVisible({ timeout: 5000 });
     await takeScreenshot(page, testInfo, '09-claim-confirmation');
   });
 
@@ -175,5 +180,43 @@ test.describe('Use Case 3: Browse Food Items and Claim Donations', () => {
     const toast = page.getByText(/food name and quantity are required/i);
     await expect(toast).toBeVisible({ timeout: 5000 });
     await takeScreenshot(page, testInfo, 'create-donation-missing-fields');
+  });
+
+  test('filters donations by category', async ({ page }, testInfo) => {
+    const donorEmail = generateUniqueEmail();
+    const futureExpiry = getFutureDate(7);
+
+    await registerUser(page, 'Donor', donorEmail, 'SecurePass1!');
+    await navigateBySidebar(page, 'Donations', '/app/donations');
+
+    let listBtn = page.getByRole('button', { name: /list a donation/i });
+    await listBtn.first().click();
+    await page.waitForTimeout(1000);
+    await page.fill('[name="foodName"]', 'Produce Donation');
+    await page.fill('[name="quantity"]', '3');
+    await page.selectOption('[name="category"]', 'Produce');
+    await page.fill('[name="expirationDate"]', futureExpiry);
+    await page.getByRole('button', { name: /publish donation/i }).click();
+    await page.waitForTimeout(2000);
+
+    listBtn = page.getByRole('button', { name: /list a donation/i });
+    await listBtn.first().click();
+    await page.waitForTimeout(1000);
+    await page.fill('[name="foodName"]', 'Dairy Donation');
+    await page.fill('[name="quantity"]', '2');
+    await page.selectOption('[name="category"]', 'Dairy');
+    await page.fill('[name="expirationDate"]', futureExpiry);
+    await page.getByRole('button', { name: /publish donation/i }).click();
+    await page.waitForTimeout(2000);
+
+    const dairyPill = page.getByRole('button', { name: /^dairy$/i });
+    await dairyPill.click();
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
+
+    await expect(page.getByText('Dairy Donation').first()).toBeVisible({ timeout: 5000 });
+    const produceCount = await page.getByText('Produce Donation').count();
+    expect(produceCount).toBe(0);
+    await takeScreenshot(page, testInfo, 'filtered-dairy-donations');
   });
 });

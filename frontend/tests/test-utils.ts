@@ -11,6 +11,7 @@ export async function takeScreenshot(page: Page, testInfo: TestInfo, stepName: s
   const screenshotDir = path.join('test-results', 'screenshots', baseName);
   const filePath = path.join(screenshotDir, `${stepName}.png`);
   await page.screenshot({ path: filePath, fullPage: true });
+  await testInfo.attach(stepName, { path: filePath, contentType: 'image/png' });
 }
 
 export async function waitForSPA(page: Page, urlSubstring: string, timeout = 20000): Promise<void> {

@@ -168,14 +168,82 @@ test.describe('Use Case 2: Manage Food Inventory', () => {
     await page.getByRole('button', { name: /save item/i }).click();
     await page.waitForTimeout(2000);
 
-    // Click Dairy filter pill
     const dairyPill = page.getByRole('button', { name: /^dairy$/i });
     await dairyPill.click();
-    await page.waitForTimeout(1500);
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
 
     await expect(page.getByText('Milk').first()).toBeVisible({ timeout: 5000 });
     const appleCount = await page.getByText('Apple').count();
     expect(appleCount).toBe(0);
     await takeScreenshot(page, testInfo, 'filtered-dairy-only');
+  });
+
+  test('filters items by storage location', async ({ page }, testInfo) => {
+    await registerUser(page, 'Inv User', generateUniqueEmail(), 'SecurePass1!');
+    await navigateBySidebar(page, 'Inventory', '/app/inventory');
+
+    let addBtn = page.getByRole('button', { name: /add item/i });
+    await addBtn.first().click();
+    await page.waitForSelector('#inventory-form', { timeout: 10000 });
+    await page.fill('[name="foodName"]', 'Fridge Item');
+    await page.fill('[name="quantity"]', '2');
+    await page.selectOption('[name="storageLocation"]', 'Fridge');
+    await page.fill('[name="expirationDate"]', getFutureDate(7));
+    await page.getByRole('button', { name: /save item/i }).click();
+    await page.waitForTimeout(2000);
+
+    addBtn = page.getByRole('button', { name: /add item/i });
+    await addBtn.first().click();
+    await page.waitForSelector('#inventory-form', { timeout: 10000 });
+    await page.fill('[name="foodName"]', 'Pantry Item');
+    await page.fill('[name="quantity"]', '1');
+    await page.selectOption('[name="storageLocation"]', 'Pantry');
+    await page.fill('[name="expirationDate"]', getFutureDate(5));
+    await page.getByRole('button', { name: /save item/i }).click();
+    await page.waitForTimeout(2000);
+
+    const fridgePill = page.getByRole('button', { name: /^fridge$/i });
+    await fridgePill.click();
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
+
+    await expect(page.getByText('Fridge Item').first()).toBeVisible({ timeout: 5000 });
+    const pantryCount = await page.getByText('Pantry Item').count();
+    expect(pantryCount).toBe(0);
+    await takeScreenshot(page, testInfo, 'filtered-fridge-only');
+  });
+
+  test('searches inventory items', async ({ page }, testInfo) => {
+    await registerUser(page, 'Inv User', generateUniqueEmail(), 'SecurePass1!');
+    await navigateBySidebar(page, 'Inventory', '/app/inventory');
+
+    let addBtn = page.getByRole('button', { name: /add item/i });
+    await addBtn.first().click();
+    await page.waitForSelector('#inventory-form', { timeout: 10000 });
+    await page.fill('[name="foodName"]', 'Searchable Apple');
+    await page.fill('[name="quantity"]', '2');
+    await page.fill('[name="expirationDate"]', getFutureDate(7));
+    await page.getByRole('button', { name: /save item/i }).click();
+    await page.waitForTimeout(2000);
+
+    addBtn = page.getByRole('button', { name: /add item/i });
+    await addBtn.first().click();
+    await page.waitForSelector('#inventory-form', { timeout: 10000 });
+    await page.fill('[name="foodName"]', 'Hidden Milk');
+    await page.fill('[name="quantity"]', '1');
+    await page.fill('[name="expirationDate"]', getFutureDate(5));
+    await page.getByRole('button', { name: /save item/i }).click();
+    await page.waitForTimeout(2000);
+
+    const searchInput = page.getByPlaceholder(/search inventory/i);
+    await searchInput.fill('Apple');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
+
+    await expect(page.getByText('Searchable Apple').first()).toBeVisible({ timeout: 5000 });
+    const hiddenCount = await page.getByText('Hidden Milk').count();
+    expect(hiddenCount).toBe(0);
+    await takeScreenshot(page, testInfo, 'search-apple-results');
   });
 });
