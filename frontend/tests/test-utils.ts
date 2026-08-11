@@ -51,6 +51,36 @@ export async function registerUser(
   await page.waitForTimeout(1500);
 }
 
+export async function loginUser(
+  page: Page,
+  email: string,
+  password: string,
+): Promise<void> {
+  await page.goto('/login');
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(500);
+
+  await page.fill('[name="email"]', email);
+  await page.fill('[name="password"]', password);
+
+  await page.getByRole('button', { name: /sign in/i }).click();
+
+  await waitForSPA(page, '/app/dashboard', 20000);
+  await page.waitForTimeout(1500);
+}
+
+export async function logoutUser(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
+    window.dispatchEvent(new CustomEvent('auth-changed'));
+  });
+  await page.waitForTimeout(500);
+  await page.goto('/login');
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(500);
+}
+
 export function getFutureDate(daysFromNow: number): string {
   const date = new Date();
   date.setDate(date.getDate() + daysFromNow);

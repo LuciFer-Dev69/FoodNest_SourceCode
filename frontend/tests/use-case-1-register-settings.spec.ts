@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { generateUniqueEmail, registerUser, takeScreenshot, navigateBySidebar, logoutAndClear } from './test-utils';
+import { generateUniqueEmail, registerUser, loginUser, logoutUser, takeScreenshot, navigateBySidebar, logoutAndClear } from './test-utils';
 
 async function toggleSetting(page: any, label: string) {
   const row = page.locator('.flex.items-center.gap-3.rounded-2xl').filter({ has: page.locator('p.text-sm.font-semibold', { hasText: label }) });
@@ -31,12 +31,15 @@ test.describe('Use Case 1: Register Users and Privacy Settings', () => {
     await takeScreenshot(page, testInfo, '04-settings-page');
 
     const wasDonationsPublic = await toggleSetting(page, 'Show donations publicly');
+    await expect(page.getByText(/settings saved/i)).toBeVisible({ timeout: 3000 });
     await takeScreenshot(page, testInfo, '05-show-donations-toggled');
 
     const wasPublicProfile = await toggleSetting(page, 'Public profile');
+    await expect(page.getByText(/settings saved/i)).toBeVisible({ timeout: 3000 });
     await takeScreenshot(page, testInfo, '06-public-profile-toggled');
 
     const wasInventoryReminders = await toggleSetting(page, 'Inventory reminders');
+    await expect(page.getByText(/settings saved/i)).toBeVisible({ timeout: 3000 });
     await takeScreenshot(page, testInfo, '07-inventory-reminders-toggled');
 
     const heading = page.getByRole('heading', { name: /settings/i }).first();
@@ -111,5 +114,83 @@ test.describe('Use Case 1: Register Users and Privacy Settings', () => {
     await page.waitForTimeout(2000);
     await expect(page).toHaveURL(/\/login/);
     await takeScreenshot(page, testInfo, 'redirected-to-login');
+  });
+
+  test('redirects /register to /login?mode=register', async ({ page }, testInfo) => {
+    await page.goto('/register');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
+    await expect(page).toHaveURL(/\/login\?mode=register/);
+    await takeScreenshot(page, testInfo, 'register-redirect');
+  });
+
+  test('user logs in with valid credentials', async ({ page }, testInfo) => {
+    const email = generateUniqueEmail();
+    const password = 'SecurePass1!';
+
+    await registerUser(page, 'Login Test', email, password);
+    await logoutAndClear(page);
+    await takeScreenshot(page, testInfo, '01-logged-out');
+
+    await loginUser(page, email, password);
+    await takeScreenshot(page, testInfo, '02-logged-in');
+
+    await expect(page).toHaveURL(/\/app\/dashboard/);
+    const heading = page.getByRole('heading', { name: /dashboard/i }).first();
+    await expect(heading).toBeVisible({ timeout: 5000 });
+    await takeScreenshot(page, testInfo, '03-dashboard-visible');
+  });
+
+  test('rejects invalid 2FA code during registration', async ({ page }, testInfo) => {
+    const email = generateUniqueEmail();
+
+    await page.goto('/login?mode=register');
+    await page.waitForLoadState('networkidle');
+
+    await page.fill('[name="name"]', '2FA Test');
+    await page.fill('[name="email"]', email);
+    await page.fill('[name="password"]', 'SecurePass1!');
+    await page.getByRole('button', { name: /create account/i }).click();
+
+    await page.waitForSelector('[data-testid="2fa-code"]', { timeout: 15000 });
+    await takeScreenshot(page, testInfo, '01-2fa-shown');
+
+    await page.fill('[name="code"]', '999999');
+    await page.getByRole('button', { name: /verify & complete/i }).click();
+    await page.waitForTimeout(2000);
+
+    const error = page.getByText(/invalid code|Invalid 2FA/i);
+    await expect(error).toBeVisible({ timeout: 5000 });
+    await takeScreenshot(page, testInfo, '02-invalid-2fa-error');
+  });
+
+  test('user changes password from settings', async ({ page }, testInfo) => {
+    const email = generateUniqueEmail();
+    const password = 'SecurePass1!';
+
+    await registerUser(page, 'PW Change', email, password);
+    await takeScreenshot(page, testInfo, '01-registered');
+
+    await navigateBySidebar(page, 'Settings', '/app/settings');
+    await takeScreenshot(page, testInfo, '02-settings');
+
+    const updateBtn = page.getByRole('button', { name: /update/i }).first();
+    await updateBtn.click();
+    await page.waitForTimeout(500);
+    await takeScreenshot(page, testInfo, '03-password-modal');
+
+    await page.fill('input[type="password"]', password);
+    const inputs = page.locator('.fixed.inset-0.z-50 input[type="password"]');
+    await inputs.nth(0).fill(password);
+    await inputs.nth(1).fill('NewSecure1!');
+    await inputs.nth(2).fill('NewSecure1!');
+
+    await page.getByRole('button', { name: /update/i }).last().click();
+    await page.waitForTimeout(1500);
+
+    await logoutAndClear(page);
+    await loginUser(page, email, 'NewSecure1!');
+    await expect(page).toHaveURL(/\/app\/dashboard/);
+    await takeScreenshot(page, testInfo, '04-logged-in-with-new-password');
   });
 });
