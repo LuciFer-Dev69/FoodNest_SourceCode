@@ -57,6 +57,67 @@ test.describe('Use Case 4: Food Analytics', () => {
     await takeScreenshot(page, testInfo, '06-period-filters');
   });
 
+  test('shows food saved, waste, and performance progress indicators', async ({ page }, testInfo) => {
+    const email = generateUniqueEmail();
+    const futureExpiry = getFutureDate(7);
+
+    await registerUser(page, 'Insight User', email, 'SecurePass1!');
+
+    // Add inventory + publish a donation so analytics have data to report
+    await navigateBySidebar(page, 'Inventory', '/app/inventory');
+    const addBtn = page.getByRole('button', { name: /add item/i });
+    await addBtn.first().click();
+    await page.waitForSelector('#inventory-form', { timeout: 10000 });
+    await page.fill('[name="foodName"]', 'Progress Banana');
+    await page.fill('[name="quantity"]', '2');
+    await page.selectOption('[name="category"]', 'Produce');
+    await page.fill('[name="expirationDate"]', futureExpiry);
+    await page.getByRole('button', { name: /save item/i }).click();
+    await page.waitForTimeout(3000);
+
+    await navigateBySidebar(page, 'Donations', '/app/donations');
+    const listBtn = page.getByRole('button', { name: /list a donation/i });
+    await listBtn.first().click();
+    await page.waitForTimeout(1000);
+    await page.fill('[name="foodName"]', 'Progress Donation');
+    await page.fill('[name="quantity"]', '5');
+    await page.selectOption('[name="category"]', 'Produce');
+    await page.fill('[name="expirationDate"]', futureExpiry);
+    await page.getByRole('button', { name: /publish donation/i }).click();
+    await page.waitForTimeout(3000);
+
+    await navigateBySidebar(page, 'Analytics', '/app/analytics');
+    await page.waitForTimeout(2000);
+    await takeScreenshot(page, testInfo, '01-analytics-loaded');
+
+    // Waste % progress bar (assert the track container; the gradient fill may be 0-width)
+    await expect(page.getByText('Waste %').first()).toBeVisible({ timeout: 8000 });
+    const wasteCard = page.locator('.glass-card').filter({ hasText: 'Waste %' }).first();
+    await expect(wasteCard.locator('.overflow-hidden').first()).toBeVisible({ timeout: 5000 });
+
+    // Donation success + CO2 + items saved sustainability metrics
+    await expect(page.getByText('Donation Success').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('CO₂ Saved').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('Items Saved').first()).toBeVisible({ timeout: 5000 });
+    await takeScreenshot(page, testInfo, '02-sustainability-metrics');
+
+    // Performance Score circular progress + breakdown bars
+    await expect(page.getByText('FoodNest Score').first()).toBeVisible({ timeout: 5000 });
+    const scorePanel = page.locator('.glass-card').filter({ hasText: 'FoodNest Score' }).first();
+    if (await scorePanel.count() === 0) {
+      await expect(page.getByText('FoodNest Score').first()).toBeVisible({ timeout: 5000 });
+    }
+    const circle = page.locator('svg circle[stroke-linecap="round"]');
+    await expect(circle.first()).toBeVisible({ timeout: 5000 });
+    await takeScreenshot(page, testInfo, '03-performance-score');
+
+    // Smart insights / recommendations
+    const pageText = await page.locator('body').textContent();
+    const hasInsight = (pageText || '').includes('Recommendation') || (pageText || '').includes('insight');
+    expect(hasInsight).toBeTruthy();
+    await takeScreenshot(page, testInfo, '04-insights');
+  });
+
   test('shows sustainability stats and progress indicators', async ({ page }, testInfo) => {
     const email = generateUniqueEmail();
     await registerUser(page, 'Sustain User', email, 'SecurePass1!');

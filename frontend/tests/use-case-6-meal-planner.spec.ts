@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { generateUniqueEmail, registerUser, takeScreenshot, navigateBySidebar } from './test-utils';
+import { generateUniqueEmail, registerUser, takeScreenshot, navigateBySidebar, getFutureDate } from './test-utils';
 
 test.describe('Use Case 6: Plan Weekly Meals', () => {
   test('user generates and views a weekly meal plan', async ({ page }, testInfo) => {
@@ -64,6 +64,47 @@ test.describe('Use Case 6: Plan Weekly Meals', () => {
 
     await page.waitForTimeout(2000);
     await takeScreenshot(page, testInfo, 'after-clear');
+  });
+
+  test('smart suggestions are based on inventory ingredients', async ({ page }, testInfo) => {
+    await registerUser(page, 'Suggest User', generateUniqueEmail(), 'SecurePass1!');
+    await takeScreenshot(page, testInfo, '01-registered-dashboard');
+
+    // Add "Eggs" to inventory so recipe suggestions can match it
+    await navigateBySidebar(page, 'Inventory', '/app/inventory');
+    const addBtn = page.getByRole('button', { name: /add item/i });
+    await addBtn.first().click();
+    await page.waitForSelector('#inventory-form', { timeout: 10000 });
+    await page.waitForTimeout(500);
+    await page.fill('[name="foodName"]', 'Eggs');
+    await page.fill('[name="quantity"]', '6');
+    await page.fill('[name="unit"]', 'pcs');
+    await page.selectOption('[name="category"]', 'Produce');
+    await page.fill('[name="expirationDate"]', getFutureDate(3));
+    await page.getByRole('button', { name: /save item/i }).click();
+    await page.waitForTimeout(3000);
+    await page.waitForLoadState('networkidle');
+    await takeScreenshot(page, testInfo, '02-eggs-added-to-inventory');
+
+    // Navigate to planner. The Smart Suggestions sidebar only renders once a plan/grid is shown,
+    // so generate a random plan first to reveal it.
+    await navigateBySidebar(page, 'Planner', '/app/planner');
+    await page.waitForTimeout(2000);
+    const generateBtn = page.getByRole('button', { name: /generate random plan/i });
+    await expect(generateBtn.first()).toBeVisible({ timeout: 5000 });
+    await generateBtn.first().click();
+    await page.waitForTimeout(3000);
+    await page.waitForLoadState('networkidle');
+    await takeScreenshot(page, testInfo, '03-planner-with-suggestions');
+
+    await expect(page.getByText('Smart suggestions').first()).toBeVisible({ timeout: 8000 });
+    const suggestionText = page.getByText(/ingredients|available/i).first();
+    await expect(suggestionText).toBeVisible({ timeout: 8000 });
+
+    // Recipes containing Eggs (e.g. Boiled Eggs / Omelette) should be suggested
+    const boiledEggs = page.getByText(/boiled eggs|omelette|egg fried rice/i).first();
+    await expect(boiledEggs).toBeVisible({ timeout: 8000 });
+    await takeScreenshot(page, testInfo, '04-egg-suggestions-visible');
   });
 
   test('user can save a meal plan', async ({ page }, testInfo) => {

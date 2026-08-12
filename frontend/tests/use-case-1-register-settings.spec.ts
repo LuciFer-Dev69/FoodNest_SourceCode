@@ -31,15 +31,15 @@ test.describe('Use Case 1: Register Users and Privacy Settings', () => {
     await takeScreenshot(page, testInfo, '04-settings-page');
 
     const wasDonationsPublic = await toggleSetting(page, 'Show donations publicly');
-    await expect(page.getByText(/settings saved/i)).toBeVisible({ timeout: 3000 });
+    await expect(page.getByText(/settings saved/i).first()).toBeVisible({ timeout: 3000 });
     await takeScreenshot(page, testInfo, '05-show-donations-toggled');
 
     const wasPublicProfile = await toggleSetting(page, 'Public profile');
-    await expect(page.getByText(/settings saved/i)).toBeVisible({ timeout: 3000 });
+    await expect(page.getByText(/settings saved/i).first()).toBeVisible({ timeout: 3000 });
     await takeScreenshot(page, testInfo, '06-public-profile-toggled');
 
     const wasInventoryReminders = await toggleSetting(page, 'Inventory reminders');
-    await expect(page.getByText(/settings saved/i)).toBeVisible({ timeout: 3000 });
+    await expect(page.getByText(/settings saved/i).first()).toBeVisible({ timeout: 3000 });
     await takeScreenshot(page, testInfo, '07-inventory-reminders-toggled');
 
     const heading = page.getByRole('heading', { name: /settings/i }).first();
@@ -136,7 +136,7 @@ test.describe('Use Case 1: Register Users and Privacy Settings', () => {
     await takeScreenshot(page, testInfo, '02-logged-in');
 
     await expect(page).toHaveURL(/\/app\/dashboard/);
-    const heading = page.getByRole('heading', { name: /dashboard/i }).first();
+    const heading = page.getByRole('heading', { name: /good (morning|afternoon|evening)/i }).first();
     await expect(heading).toBeVisible({ timeout: 5000 });
     await takeScreenshot(page, testInfo, '03-dashboard-visible');
   });
@@ -162,6 +162,52 @@ test.describe('Use Case 1: Register Users and Privacy Settings', () => {
     const error = page.getByText(/invalid code|Invalid 2FA/i);
     await expect(error).toBeVisible({ timeout: 5000 });
     await takeScreenshot(page, testInfo, '02-invalid-2fa-error');
+  });
+
+  test('user configures all privacy and notification preferences from dashboard', async ({ page }, testInfo) => {
+    await registerUser(page, 'Pref User', generateUniqueEmail(), 'SecurePass1!');
+    await takeScreenshot(page, testInfo, '01-registered-dashboard');
+
+    await navigateBySidebar(page, 'Settings', '/app/settings');
+    await takeScreenshot(page, testInfo, '02-settings-page');
+
+    const settingLabels = [
+      'Public profile',
+      'Show donations publicly',
+      'Allow community messages',
+      'Show online status',
+      'Inventory reminders',
+      'Donation updates',
+      'Community activity',
+      'Meal reminders',
+      'Weekly reports',
+      'Email notifications',
+      'Push notifications',
+    ];
+
+    const before = new Map<string, boolean>();
+    for (const label of settingLabels) {
+      const wasOn = await toggleSetting(page, label);
+      before.set(label, wasOn);
+      await expect(page.getByText(/settings saved/i).first()).toBeVisible({ timeout: 3000 });
+      await page.waitForTimeout(300);
+    }
+    await takeScreenshot(page, testInfo, '03-all-settings-toggled');
+
+    await navigateBySidebar(page, 'Dashboard', '/app/dashboard');
+    await navigateBySidebar(page, 'Settings', '/app/settings');
+    await takeScreenshot(page, testInfo, '04-settings-reloaded');
+
+    for (const label of settingLabels) {
+      const expectedOn = !before.get(label);
+      const row = page.locator('.flex.items-center.gap-3.rounded-2xl')
+        .filter({ has: page.locator('p.text-sm.font-semibold', { hasText: label }) });
+      const toggle = row.locator('button.h-7.w-12');
+      await expect(toggle).toBeVisible({ timeout: 3000 });
+      const isOn = await toggle.evaluate((el: Element) => el.classList.contains('bg-gradient-primary'));
+      expect(isOn, `expected "${label}" to persist as ${expectedOn}`).toBe(expectedOn);
+    }
+    await takeScreenshot(page, testInfo, '05-settings-persisted');
   });
 
   test('user changes password from settings', async ({ page }, testInfo) => {

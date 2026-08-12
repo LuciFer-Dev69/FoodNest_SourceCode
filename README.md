@@ -142,6 +142,25 @@ cd frontend
 npx playwright test
 ```
 
+### UAT Test Coverage Matrix (Playwright)
+
+Each UAT use case is mapped to a dedicated spec file under `frontend/tests/`. Tests
+run against the Vite dev server (`:8080`, proxying `/api` → backend `:3000`).
+
+| Use Case | Spec File | Covered Scenarios |
+|---|---|---|
+| 1 – Register & Privacy Settings | `use-case-1-register-settings.spec.ts` | 2FA onboarding, invalid/empty/duplicate email, auth redirects, login, invalid 2FA, password change, privacy & notification preference toggles with persistence |
+| 2 – Manage Food Inventory | `use-case-2-inventory.spec.ts` | Add/edit/delete, validation, zero quantity, category/location/status filters, search, sort, grid/list views, mark-as-used |
+| 3 – Browse & Claim Donations | `use-case-3-browse-claim-donations.spec.ts` | Browse, claim, own/already-claimed rejection, validation, filters, search, location detail, edit/delete listing, share-to-community feed, claim notifications |
+| 4 – Food Analytics | `use-case-4-analytics.spec.ts` | Stat cards, charts, period filters, food saved / waste / performance score progress indicators, sustainability insights |
+| 5 – View Notifications | `use-case-5-notifications.spec.ts` | donation-created & expiry notifications, mark-all-read, clear-read, status/type filters, search, click-through navigation |
+| 6 – Plan Weekly Meals | `use-case-6-meal-planner.spec.ts` | Generate random plan, clear all, save plan, inventory-based smart suggestions |
+
+> **Note:** Use Case 2 describes *converting inventory items directly to donation
+> listings* from the inventory screen. This feature is **not currently implemented**
+> in the UI (donations are created from the separate Donation marketplace page), so no
+> automated test covers it. Add the feature, then extend `use-case-2-inventory.spec.ts`.
+
 ---
 
 ## 🛡️ License

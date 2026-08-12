@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import type { NotificationItem, NotificationsResponse } from "@/models/notification.model";
 
 export function useNotificationsController() {
+  const navigate = useNavigate();
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -149,8 +151,8 @@ export function useNotificationsController() {
       system: "/app/notifications",
     };
     const path = routes[item.type] || "/app/notifications";
-    window.location.href = path;
-  }, [markAsRead]);
+    navigate({ to: path as never });
+  }, [markAsRead, navigate]);
 
   return {
     items,

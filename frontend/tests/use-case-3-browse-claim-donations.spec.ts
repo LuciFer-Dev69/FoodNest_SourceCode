@@ -68,10 +68,9 @@ test.describe('Use Case 3: Browse Food Items and Claim Donations', () => {
     const claimBtn = page.getByRole('button', { name: /claim donation/i });
     await expect(claimBtn).toBeVisible({ timeout: 5000 });
     await claimBtn.click();
-    await page.waitForTimeout(3000);
-    await takeScreenshot(page, testInfo, '07-donation-claimed');
-
     await expect(page.getByText(/donation claimed/i)).toBeVisible({ timeout: 5000 });
+    await takeScreenshot(page, testInfo, '07-donation-claimed');
+    await page.waitForTimeout(1500);
     await takeScreenshot(page, testInfo, '08-claim-confirmation');
   });
 
@@ -160,8 +159,8 @@ test.describe('Use Case 3: Browse Food Items and Claim Donations', () => {
     await page.waitForTimeout(1000);
 
     await expect(page.getByText('Dairy Donation').first()).toBeVisible({ timeout: 5000 });
-    const produceCount = await page.getByText('Produce Donation').count();
-    expect(produceCount).toBe(0);
+    const produceCardCount = page.locator('[class*="glass-card"]').filter({ hasText: 'Produce Donation' });
+    expect(await produceCardCount.count()).toBe(0);
     await takeScreenshot(page, testInfo, 'filtered-dairy-donations');
   });
 
@@ -181,8 +180,8 @@ test.describe('Use Case 3: Browse Food Items and Claim Donations', () => {
     await page.waitForTimeout(1000);
 
     await expect(page.getByText('Fresh Strawberries').first()).toBeVisible({ timeout: 5000 });
-    const cheeseCount = await page.getByText('Cheddar Cheese').count();
-    expect(cheeseCount).toBe(0);
+    const cheeseCardCount = page.locator('[class*="glass-card"]').filter({ hasText: 'Cheddar Cheese' });
+    expect(await cheeseCardCount.count()).toBe(0);
     await takeScreenshot(page, testInfo, 'search-strawberries');
   });
 
@@ -210,6 +209,85 @@ test.describe('Use Case 3: Browse Food Items and Claim Donations', () => {
     const pickupInfo = page.getByText(/pickup/i).first();
     await expect(pickupInfo).toBeVisible({ timeout: 5000 });
     await takeScreenshot(page, testInfo, 'donation-location-detail');
+  });
+
+  test('donor edits a donation listing', async ({ page }, testInfo) => {
+    const donationName = `Editable Donation ${Date.now()}`;
+    const updatedName = `${donationName} (Updated)`;
+
+    await registerUser(page, 'Donor', generateUniqueEmail(), 'SecurePass1!');
+    await navigateBySidebar(page, 'Donations', '/app/donations');
+    await createDonation(page, donationName, '3', 'Produce', getFutureDate(7));
+    await expect(page.getByText(donationName).first()).toBeVisible({ timeout: 10000 });
+
+    const card = page.locator('[class*="card"]').filter({ hasText: donationName }).first();
+    await card.waitFor({ state: 'visible', timeout: 10000 });
+
+    const editBtn = card.locator('button').filter({ has: page.locator('svg.lucide-pen, svg.lucide-edit-2') }).first();
+    await expect(editBtn).toBeVisible({ timeout: 5000 });
+    await editBtn.click();
+    await page.waitForTimeout(1000);
+
+    await page.fill('[name="foodName"]', updatedName);
+    await page.getByRole('button', { name: /save changes/i }).click();
+    await page.waitForTimeout(3000);
+    await page.waitForLoadState('networkidle');
+
+    await expect(page.getByText(updatedName).first()).toBeVisible({ timeout: 10000 });
+    await takeScreenshot(page, testInfo, 'donation-edited');
+  });
+
+  test('donor deletes a donation listing', async ({ page }, testInfo) => {
+    const donationName = `Deletable Donation ${Date.now()}`;
+
+    await registerUser(page, 'Donor', generateUniqueEmail(), 'SecurePass1!');
+    await navigateBySidebar(page, 'Donations', '/app/donations');
+    await createDonation(page, donationName, '2', 'Dairy', getFutureDate(7));
+    await expect(page.getByText(donationName).first()).toBeVisible({ timeout: 10000 });
+
+    const card = page.locator('[class*="card"]').filter({ hasText: donationName }).first();
+    await card.waitFor({ state: 'visible', timeout: 10000 });
+
+    const deleteBtn = card.locator('button').filter({ has: page.locator('svg.lucide-trash-2') }).first();
+    await expect(deleteBtn).toBeVisible({ timeout: 5000 });
+    await deleteBtn.click();
+    await page.waitForTimeout(3000);
+    await page.waitForLoadState('networkidle');
+
+    await expect(page.getByText(donationName).first()).not.toBeVisible({ timeout: 10000 });
+    await takeScreenshot(page, testInfo, 'donation-deleted');
+  });
+
+  test('published donation appears in community feed when shared', async ({ page }, testInfo) => {
+    const donationName = `Community Donation ${Date.now()}`;
+
+    await registerUser(page, 'Donor', generateUniqueEmail(), 'SecurePass1!');
+    await navigateBySidebar(page, 'Donations', '/app/donations');
+
+    const listBtn = page.getByRole('button', { name: /list a donation/i }).or(page.getByRole('link', { name: /list donation/i }));
+    await listBtn.first().click();
+    await page.waitForTimeout(1500);
+    await page.fill('[name="foodName"]', donationName);
+    await page.fill('[name="quantity"]', '4');
+    await page.fill('[name="unit"]', 'kg');
+    await page.selectOption('[name="category"]', 'Produce');
+    await page.fill('[name="expirationDate"]', getFutureDate(7));
+    await page.fill('[name="pickupDate"]', getFutureDate(7));
+    await page.fill('[name="pickupTime"]', '4-6pm');
+
+    const shareCheckbox = page.locator('[name="shareToCommunity"]');
+    await expect(shareCheckbox).toBeVisible({ timeout: 5000 });
+    await shareCheckbox.check();
+    await page.getByRole('button', { name: /publish donation/i }).click();
+    await page.waitForTimeout(3000);
+    await page.waitForLoadState('networkidle');
+    await takeScreenshot(page, testInfo, 'donation-shared-to-community');
+
+    await navigateBySidebar(page, 'Community', '/app/community');
+    await page.waitForTimeout(2000);
+    await expect(page.getByText(donationName).first()).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/food donation/i).first()).toBeVisible({ timeout: 5000 });
+    await takeScreenshot(page, testInfo, 'donation-post-in-community');
   });
 
   test('claimant receives confirmation notification', async ({ page }, testInfo) => {

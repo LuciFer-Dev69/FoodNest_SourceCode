@@ -13,9 +13,25 @@ export async function connectDB() {
     await mongoose.connect(MONGODB_URI);
     isConnected = true;
     console.log("MongoDB connected successfully!");
+    await dropStaleIndexes();
   } catch (error) {
     console.error("MongoDB connection error:", error.message);
     throw error;
+  }
+}
+
+async function dropStaleIndexes() {
+  try {
+    const collection = mongoose.connection.db.collection("mealplans");
+    const indexes = await collection.indexes();
+    for (const idx of indexes) {
+      if (idx.name === "user_id_1_slot_key_1") {
+        await collection.dropIndex("user_id_1_slot_key_1");
+        console.log("Dropped stale index user_id_1_slot_key_1 on mealplans");
+      }
+    }
+  } catch (error) {
+    console.warn("Failed to clean stale indexes:", error.message);
   }
 }
 

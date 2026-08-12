@@ -184,8 +184,8 @@ export default function AppShell() {
       api.patch(`/api/notifications/${item.id}/read`).catch(() => {});
       setNotifCount((prev) => Math.max(0, prev - 1));
     }
-    window.location.href = path;
-  }, []);
+    navigate({ to: path as never });
+  }, [navigate]);
 
   const handleMarkAllRead = useCallback(async () => {
     try {
