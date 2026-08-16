@@ -163,6 +163,19 @@ run against the Vite dev server (`:8080`, proxying `/api` → backend `:3000`).
 
 ---
 
+## 📋 UAT Testing
+
+The complete **User Acceptance Testing** documentation and artifacts live in
+[`docs/uat/`](docs/uat/README.md):
+
+- **Test Plan** — scope, environment, roles, entry/exit criteria, defect process.
+- **Requirements Traceability Matrix** — feature → use case → spec → test case IDs.
+- **Test Cases** — step-by-step UAT test cases for all 12 use cases
+  (UC-01…UC-06 automated via Playwright, UC-07…UC-12 manual).
+- **Execution Log, Defect Log & Sign-off Report** — recording and sign-off templates.
+
+---
+
 ## 🛡️ License
 
 This project is licensed under the ISC License. Developed with 💚 to promote zero-waste communities.
