@@ -67,11 +67,25 @@ const startServer = (retries = 5) => {
   });
 };
 
-connectDB().then(() => {
-  if (process.env.NODE_ENV !== "test") {
-    startServer();
-  }
-});
+// Only start listening when this file is executed directly (e.g. `node
+// server.js`). When imported as a module — such as by the Vercel serverless
+// dispatcher — the host runtime owns the HTTP layer, so we just export app.
+const isDirectRun =
+  typeof process.argv !== "undefined" &&
+  process.argv[1] &&
+  import.meta.url.endsWith(path.basename(process.argv[1]));
+
+if (isDirectRun) {
+  connectDB().then(() => {
+    if (process.env.NODE_ENV !== "test") {
+      startServer();
+    }
+  });
+} else {
+  // Lazy-connect so the DB is ready on the first API request inside the
+  // serverless runtime.
+  connectDB().catch((err) => console.error("MongoDB connection error:", err.message));
+}
 
 export default app;
-export { server };
+
