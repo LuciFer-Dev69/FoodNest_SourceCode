@@ -50,26 +50,28 @@ app.use((err, _req, res, _next) => {
 });
 
 let server;
-if (process.env.NODE_ENV !== "test") {
-  const startServer = (retries = 5) => {
-    server = app.listen(PORT, () => {
-      console.log(`Express server is online and listening on port ${PORT}`);
-    });
+const startServer = (retries = 5) => {
+  server = app.listen(PORT, () => {
+    console.log(`Express server is online and listening on port ${PORT}`);
+  });
 
-    server.on("error", (err) => {
-      if (err.code === "EADDRINUSE" && retries > 0) {
-        console.warn(`Port ${PORT} busy (TIME_WAIT), retrying in 3s... (${retries} retries left)`);
-        server.close();
-        setTimeout(() => startServer(retries - 1), 3000);
-      } else {
-        console.error("Server error:", err.message);
-        process.exit(1);
-      }
-    });
-  };
+  server.on("error", (err) => {
+    if (err.code === "EADDRINUSE" && retries > 0) {
+      console.warn(`Port ${PORT} busy (TIME_WAIT), retrying in 3s... (${retries} retries left)`);
+      server.close();
+      setTimeout(() => startServer(retries - 1), 3000);
+    } else {
+      console.error("Server error:", err.message);
+      process.exit(1);
+    }
+  });
+};
 
-  connectDB().then(() => startServer());
-}
+connectDB().then(() => {
+  if (process.env.NODE_ENV !== "test") {
+    startServer();
+  }
+});
 
 export default app;
 export { server };
