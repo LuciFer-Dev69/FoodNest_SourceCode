@@ -9,21 +9,30 @@ import { PageHeader, Panel } from "@/components/app/primitives";
 import type { PlannerController } from "@/controllers/planner.controller";
 import { FILTER_OPTIONS } from "@/models/planner.model";
 
-const STATUS_ICONS = {
+const STATUS_ICONS: Record<string, string> = {
   planned: "",
   completed: "✓",
   skipped: "→",
   cancelled: "✕",
 };
 
-const STATUS_BG = {
+const STATUS_BG: Record<string, string> = {
   planned: "",
   completed: "bg-green-500/10 border-green-500/30",
   skipped: "bg-amber-500/10 border-amber-500/30",
   cancelled: "bg-red-500/10 border-red-500/30",
 };
 
-function QuickActions({ onEdit, onDuplicate, onDelete, onMove, onFavorite, isFav }) {
+function QuickActions({
+  onEdit, onDuplicate, onDelete, onFavorite, isFav,
+}: {
+  onEdit: () => void;
+  onDuplicate: () => void;
+  onDelete: () => void;
+  onMove?: () => void;
+  onFavorite: () => void;
+  isFav: boolean;
+}) {
   return (
     <div className="absolute right-1 top-1 z-10 flex gap-0.5">
       <button onClick={(e) => { e.stopPropagation(); onEdit(); }} className="grid h-6 w-6 place-items-center rounded-lg bg-background/80 text-muted-foreground hover:bg-secondary" title="Edit"><Search className="h-3 w-3" /></button>
@@ -34,23 +43,36 @@ function QuickActions({ onEdit, onDuplicate, onDelete, onMove, onFavorite, isFav
   );
 }
 
-function MealCard({ slotKey, meal, onEdit, onDuplicate, onDelete, onStatusChange, onFavorite, isFav, onMoveTo, onDragStart }) {
-  const [menuOpen, setMenuOpen] = useState(false);
-
+function MealCard({
+  slotKey, meal, onEdit, onDuplicate, onDelete, onStatusChange, onFavorite, isFav, onDragStart,
+}: {
+  slotKey: string;
+  meal: any;
+  onEdit: () => void;
+  onDuplicate: () => void;
+  onDelete: () => void;
+  onStatusChange: (s: any) => void;
+  onFavorite: () => void;
+  isFav: boolean;
+  onMoveTo?: () => void;
+  onDragStart?: (slotKey: string) => void;
+}) {
   if (!meal || !meal.name) return null;
 
   return (
     <motion.div
       layout
       draggable
-      onDragStart={(e) => {
-        e.dataTransfer.setData("text/plain", slotKey);
-        e.dataTransfer.effectAllowed = "move";
+      onDragStart={(e: any) => {
+        if (e.dataTransfer) {
+          e.dataTransfer.setData("text/plain", slotKey);
+          e.dataTransfer.effectAllowed = "move";
+        }
         onDragStart?.(slotKey);
       }}
       initial={{ scale: 0.9, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
-      className={`relative flex h-full flex-col rounded-xl bg-gradient-emerald p-2 text-white ${STATUS_BG[meal.status]} border ${meal.status !== "planned" ? "border-current" : "border-transparent"}`}
+      className={`relative flex h-full flex-col rounded-xl bg-gradient-emerald p-2 text-white ${STATUS_BG[meal.status] || ""} border ${meal.status !== "planned" ? "border-current" : "border-transparent"}`}
     >
       <QuickActions
         onEdit={onEdit}
@@ -85,7 +107,7 @@ function MealCard({ slotKey, meal, onEdit, onDuplicate, onDelete, onStatusChange
   );
 }
 
-function EmptySlot({ slotKey, onAdd }) {
+function EmptySlot({ slotKey, onAdd }: { slotKey: string; onAdd: (slotKey: string) => void }) {
   return (
     <button
       onClick={() => onAdd(slotKey)}
@@ -98,7 +120,7 @@ function EmptySlot({ slotKey, onAdd }) {
 
 function StatusBadge({ status }: { status: string }) {
   if (status === "planned") return null;
-  const colors = {
+  const colors: Record<string, string> = {
     completed: "bg-green-500/15 text-green-600",
     skipped: "bg-amber-500/15 text-amber-600",
     cancelled: "bg-red-500/15 text-red-600",
@@ -168,10 +190,6 @@ export function PlannerView({
       return;
     }
     handleAddMeal(slotKey, meal);
-  }
-
-  function getSlot(slotKey: string) {
-    return plan.find((m) => m.slotKey === slotKey);
   }
 
   function handleOpenMove(slotKey: string) {

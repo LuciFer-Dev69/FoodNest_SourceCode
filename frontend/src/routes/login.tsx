@@ -8,8 +8,8 @@ import { getStoredToken } from "@/lib/auth-storage";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Sign in — FoodNest" }] }),
-  validateSearch: (search: Record<string, unknown>) => ({
-    mode: (search.mode as string) || "login",
+  validateSearch: (search: Record<string, unknown>): { mode?: "login" | "register" } => ({
+    mode: (search.mode as "login" | "register") || undefined,
   }),
   component: LoginPage,
 });

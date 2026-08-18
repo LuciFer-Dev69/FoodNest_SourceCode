@@ -22,7 +22,8 @@ export function LocationPicker({
   const markerRef = useRef<any>(null);
 
   useEffect(() => {
-    if (!mapRef.current || typeof window === "undefined") return;
+    const mapEl = mapRef.current;
+    if (!mapEl || typeof window === "undefined") return;
 
     const initMap = async () => {
       const L = (await import("leaflet")).default;
@@ -30,7 +31,7 @@ export function LocationPicker({
 
       if (!mapInstance.current) {
         const center = CENTERS[country] || CENTERS.Nepal;
-        mapInstance.current = L.map(mapRef.current, {
+        mapInstance.current = L.map(mapEl, {
           center,
           zoom: 12,
           zoomControl: true,

@@ -31,7 +31,7 @@ declare global {
 export function GoogleSignIn({ onSuccess, text = "Continue with Google" }: GoogleSignInProps) {
   const [loading, setLoading] = useState(false);
   const [scriptLoaded, setScriptLoaded] = useState(false);
-  const tokenClientRef = useRef<ReturnType<Window["google"]["accounts"]["oauth2"]["initTokenClient"]> | null>(null);
+  const tokenClientRef = useRef<ReturnType<NonNullable<Window["google"]>["accounts"]["oauth2"]["initTokenClient"]> | null>(null);
 
   useEffect(() => {
     if (typeof window.google !== "undefined") {

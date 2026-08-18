@@ -35,9 +35,9 @@ export async function getAnalytics(req, res) {
       User.findById(userId, "name email profilePicture createdAt").lean(),
       Inventory.find({ userId }).sort({ expirationDate: 1 }).lean(),
       Donation.find({ userId }).sort({ createdAt: -1 }).lean(),
-      MealPlan.find({ user_id: userId }).lean(),
+      MealPlan.find({ userId }).lean(),
       CommunityPost.find({ userId }).sort({ createdAt: -1 }).lean(),
-      Notification.find({ user_id: userId }).lean(),
+      Notification.find({ recipientUser: userId }).lean(),
     ]);
 
     // ── Dashboard Summary ──
@@ -46,9 +46,9 @@ export async function getAnalytics(req, res) {
     const completedDonations = donations.filter((d) => d.status === "Completed").length;
     const reservedDonations = donations.filter((d) => d.status === "Reserved").length;
     const expiredDonations = donations.filter((d) => d.status === "Expired").length;
-    const mealPlanCount = mealPlans.length;
+    const mealPlanCount = mealPlans.reduce((sum, p) => sum + (p.meals ? p.meals.length : 0), 0);
     const communityPostCount = communityPosts.length;
-    const unreadNotifications = notifications.filter((n) => !n.is_read).length;
+    const unreadNotifications = notifications.filter((n) => !n.isRead).length;
 
     const dashboardSummary = {
       inventoryItems: inventoryCount,
@@ -149,24 +149,12 @@ export async function getAnalytics(req, res) {
 
     // ── Meal Planner Statistics ──
     const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const mealPlansByWeek = {};
-    for (const mp of mealPlans) {
-      const key = mp.slot_key?.split("-")[0];
-      if (!key) continue;
-      const dayIdx = dayNames.indexOf(key);
-      if (dayIdx === -1) continue;
-      const date = new Date(now);
-      date.setDate(date.getDate() - ((date.getDay() - dayIdx + 7) % 7));
-      const weekKey = `${date.getFullYear()}-W${Math.ceil((date.getDate() + new Date(date.getFullYear(), 0, 1).getDay()) / 7)}`;
-      if (!mealPlansByWeek[weekKey]) mealPlansByWeek[weekKey] = 0;
-      mealPlansByWeek[weekKey]++;
-    }
+    const allMealSlots = mealPlans.flatMap((p) => p.meals || []);
 
-    const weeksWithData = Object.keys(mealPlansByWeek).length;
-    const mealPlanned = mealPlanCount;
-    const mealCompleted = Math.round(mealPlanned * 0.7); // estimated 70% completion
-    const mealMissed = mealPlanned - mealCompleted;
-    const weeklyCompletion = weeksWithData > 0
+    const mealPlanned = allMealSlots.length;
+    const mealCompleted = allMealSlots.filter((m) => m.status === "completed").length;
+    const mealMissed = allMealSlots.filter((m) => m.status === "skipped" || m.status === "cancelled").length;
+    const weeklyCompletion = mealPlanned > 0
       ? Math.round((mealCompleted / mealPlanned) * 100)
       : 0;
 
@@ -176,8 +164,9 @@ export async function getAnalytics(req, res) {
       const d = new Date(now);
       d.setDate(d.getDate() - i);
       const dayName = dayNames[d.getDay()];
-      const count = mealPlans.filter((mp) => mp.slot_key?.startsWith(dayName)).length;
-      weeklyMealChart.push({ day: dayName, completed: Math.round(count * 0.7), planned: count });
+      const count = allMealSlots.filter((m) => m.slotKey?.startsWith(dayName)).length;
+      const completed = allMealSlots.filter((m) => m.slotKey?.startsWith(dayName) && m.status === "completed").length;
+      weeklyMealChart.push({ day: dayName, completed, planned: count });
     }
 
     const mealStats = {
@@ -228,9 +217,9 @@ export async function getAnalytics(req, res) {
         return c >= dayStart && c <= dayEnd;
       }).length;
 
-      const mealsPlanned = mealPlans.filter((mp) => {
-        if (!mp.created_at) return false;
-        const c = new Date(mp.created_at);
+      const mealsCount = mealPlans.filter((mp) => {
+        if (!mp.createdAt) return false;
+        const c = new Date(mp.createdAt);
         return c >= dayStart && c <= dayEnd;
       }).length;
 
@@ -244,9 +233,9 @@ export async function getAnalytics(req, res) {
         day: dayNames[d.getDay()],
         inventory: inventoryAdded,
         donations: donationsCreated,
-        meals: mealsPlanned,
+        meals: mealsCount,
         posts: postsCreated,
-        total: inventoryAdded + donationsCreated + mealsPlanned + postsCreated,
+        total: inventoryAdded + donationsCreated + mealsCount + postsCreated,
       });
     }
 
@@ -419,7 +408,7 @@ export async function getAnalytics(req, res) {
         const count = [
           ...inventoryItems.filter((i) => i.createdAt && new Date(i.createdAt) >= dayStart && new Date(i.createdAt) <= dayEnd),
           ...donations.filter((d) => d.createdAt && new Date(d.createdAt) >= dayStart && new Date(d.createdAt) <= dayEnd),
-          ...mealPlans.filter((mp) => mp.created_at && new Date(mp.created_at) >= dayStart && new Date(mp.created_at) <= dayEnd),
+          ...mealPlans.filter((mp) => mp.createdAt && new Date(mp.createdAt) >= dayStart && new Date(mp.createdAt) <= dayEnd),
           ...communityPosts.filter((p) => p.createdAt && new Date(p.createdAt) >= dayStart && new Date(p.createdAt) <= dayEnd),
         ].length;
 
@@ -455,12 +444,16 @@ export async function getAnalytics(req, res) {
         createdAt: d.createdAt,
       });
     });
-    mealPlans.slice(0, 10).forEach((mp) => {
-      timelineEntries.push({
-        type: "meal",
-        action: "Planned",
-        text: `Planned ${mp.name} for ${mp.slot_key}`,
-        createdAt: mp.created_at,
+    mealPlans.slice(0, 5).forEach((mp) => {
+      (mp.meals || []).slice(0, 3).forEach((m) => {
+        if (m.name) {
+          timelineEntries.push({
+            type: "meal",
+            action: "Planned",
+            text: `Planned ${m.name} for ${m.slotKey}`,
+            createdAt: mp.createdAt,
+          });
+        }
       });
     });
     communityPosts.slice(0, 10).forEach((p) => {

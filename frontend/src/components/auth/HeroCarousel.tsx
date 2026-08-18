@@ -26,7 +26,7 @@ function preloadImage(src: string) {
 
 export function HeroCarousel({ slides, interval = 6000 }: HeroCarouselProps) {
   const [current, setCurrent] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval>>();
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const goTo = useCallback((index: number) => {
     setCurrent(index);
@@ -43,7 +43,9 @@ export function HeroCarousel({ slides, interval = 6000 }: HeroCarouselProps) {
 
   useEffect(() => {
     timerRef.current = setInterval(next, interval);
-    return () => clearInterval(timerRef.current);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
   }, [next, interval]);
 
   const slide = slides[current];

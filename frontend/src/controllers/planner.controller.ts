@@ -213,7 +213,7 @@ export function usePlannerController() {
 
   const handleStatusChange = useCallback((slotKey: string, status: MealSlot["status"]) => {
     setSlot(slotKey, { status });
-    const label = { completed: "completed", skipped: "skipped", cancelled: "cancelled" }[status];
+    const label = { planned: "planned", completed: "completed", skipped: "skipped", cancelled: "cancelled" }[status] || status;
     toast.success(`Meal ${label}`);
   }, []);
 

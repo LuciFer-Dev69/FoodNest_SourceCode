@@ -96,8 +96,8 @@ export async function getDashboard(req, res) {
       Inventory.find({ userId }).sort({ createdAt: -1 }).lean(),
       Donation.find({ userId }).sort({ createdAt: -1 }).lean(),
       Donation.find({ claimedBy: userId, status: { $in: ["Reserved", "Completed"] } }).sort({ createdAt: -1 }).lean(),
-      MealPlan.find({ user_id: userId }).select("slot_key name emoji uses_count created_at").lean(),
-      Notification.find({ user_id: userId }).select("message type is_read created_at").sort({ created_at: -1 }).limit(5).lean(),
+      MealPlan.find({ userId }).sort({ createdAt: -1 }).lean(),
+      Notification.find({ recipientUser: userId }).sort({ createdAt: -1 }).limit(5).lean(),
     ]);
 
     const allDonations = [...myDonations, ...claimedDonations];
@@ -109,15 +109,16 @@ export async function getDashboard(req, res) {
     const donationCount = activeDonations.length;
     const totalDonations = allDonations.length;
     const completedCount = completedDonations.length;
-    const mealPlanCount = mealPlans.length;
-    const unreadCount = notifications.filter((n) => !n.is_read).length;
+    const mealPlanCount = mealPlans.reduce((sum, p) => sum + (p.meals ? p.meals.length : 0), 0);
+    const unreadCount = notifications.filter((n) => !n.isRead).length;
 
     const todayKey = now.toLocaleDateString("en-US", { weekday: "short" });
-    const todaySlots = mealPlans.filter((m) => m.slot_key.startsWith(todayKey));
+    const latestPlan = mealPlans[0];
+    const todaySlots = (latestPlan?.meals || []).filter((m) => m.slotKey?.startsWith(todayKey));
     const todayMeals = {};
     ["Breakfast", "Lunch", "Dinner"].forEach((slot) => {
-      const meal = todaySlots.find((m) => m.slot_key === `${todayKey}-${slot}`);
-      todayMeals[slot] = meal ? { name: meal.name, emoji: meal.emoji, uses: meal.uses_count } : null;
+      const meal = todaySlots.find((m) => m.slotKey === `${todayKey}-${slot}`);
+      todayMeals[slot] = meal ? { name: meal.name, emoji: meal.emoji || "🍽️" } : null;
     });
 
     const expiringToday = inventoryItems.filter((item) => {
@@ -175,8 +176,8 @@ export async function getDashboard(req, res) {
       id: n._id,
       message: n.message,
       type: n.type,
-      isRead: n.is_read,
-      createdAt: n.created_at,
+      isRead: n.isRead,
+      createdAt: n.createdAt,
     }));
 
     const activityEntries = [];
@@ -196,13 +197,17 @@ export async function getDashboard(req, res) {
         createdAt: d.createdAt,
       });
     });
-    mealPlans.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 3).forEach((m) => {
-      activityEntries.push({
-        type: "meal",
-        action: "Planned",
-        text: `Planned ${m.name} for ${m.slot_key}`,
-        emoji: m.emoji || "🍳",
-        createdAt: m.created_at,
+    mealPlans.slice(0, 3).forEach((mp) => {
+      (mp.meals || []).slice(0, 2).forEach((m) => {
+        if (m.name) {
+          activityEntries.push({
+            type: "meal",
+            action: "Planned",
+            text: `Planned ${m.name} for ${m.slotKey}`,
+            emoji: m.emoji || "🍳",
+            createdAt: mp.createdAt,
+          });
+        }
       });
     });
     activityEntries.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));

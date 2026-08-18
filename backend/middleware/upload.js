@@ -3,9 +3,23 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 
+import os from "os";
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const uploadsDir = path.join(__dirname, "..", "uploads");
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+let uploadsDir = path.join(__dirname, "..", "uploads");
+
+try {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+} catch {
+  uploadsDir = path.join(os.tmpdir(), "foodnest-uploads");
+  if (!fs.existsSync(uploadsDir)) {
+    try {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    } catch {}
+  }
+}
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {

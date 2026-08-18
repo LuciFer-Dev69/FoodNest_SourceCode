@@ -15,7 +15,8 @@ export function FoodConnectMap({
   const mapInstance = useRef<any>(null);
 
   useEffect(() => {
-    if (!mapRef.current || typeof window === "undefined") return;
+    const mapEl = mapRef.current;
+    if (!mapEl || typeof window === "undefined") return;
 
     const initMap = async () => {
       const L = (await import("leaflet")).default;
@@ -29,7 +30,7 @@ export function FoodConnectMap({
       const center: [number, number] =
         donorLat && donorLng ? [donorLat, donorLng] : [27.7172, 85.3240];
 
-      mapInstance.current = L.map(mapRef.current, {
+      mapInstance.current = L.map(mapEl, {
         center,
         zoom: 13,
         zoomControl: true,

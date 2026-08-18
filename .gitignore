@@ -19,6 +19,8 @@ backend/node_modules
 # ── Build outputs ──────────────────────────────────────────────
 dist
 dist-ssr
+.vercel
+frontend/.vercel
 frontend/.output
 frontend/.vinxi
 frontend/.nitro

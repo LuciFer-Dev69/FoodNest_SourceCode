@@ -8,10 +8,11 @@ const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/FoodNe
 let isConnected = false;
 
 export async function connectDB() {
-  if (isConnected) return;
+  if (mongoose.connection.readyState >= 1) return;
   try {
-    await mongoose.connect(MONGODB_URI);
-    isConnected = true;
+    await mongoose.connect(MONGODB_URI, {
+      serverSelectionTimeoutMS: 5000,
+    });
     console.log("MongoDB connected successfully!");
     await dropStaleIndexes();
   } catch (error) {
