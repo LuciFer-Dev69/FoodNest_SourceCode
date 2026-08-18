@@ -14,6 +14,26 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
 const frontend = path.join(root, "frontend");
+// FoodNest unified build for Vercel.
+//
+// 1. Installs frontend & backend dependencies if not present.
+// 2. Builds the TanStack Start frontend (`npm run build` in frontend/), which
+//    emits the Nitro Vercel preset output at frontend/.vercel/output/.
+// 3. Copies backend code and backend node_modules directly inside the serverless
+//    function directory (`__server.func/backend` and `__server.func/node_modules`).
+// 4. Patches `__server.func/index.mjs` so requests to `/api/*` and `/uploads/*`
+//    are routed to `./backend/server.js`.
+// 5. Copies the output to root `.vercel/output` so Vercel root deployments work seamlessly.
+
+import { execSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const root = path.resolve(__dirname, "..");
+const frontend = path.join(root, "frontend");
+const backendSource = path.join(root, "backend");
 const frontendVercel = path.join(frontend, ".vercel", "output");
 const rootVercel = path.join(root, ".vercel", "output");
 const funcDir = path.join(frontendVercel, "functions", "__server.func");
@@ -36,8 +56,21 @@ function copyDirSync(src, dest, filterFn) {
 }
 
 // ---------------------------------------------------------------------------
-// Step 1 – build the frontend (Nitro vercel preset via vite build)
+// Step 1 – ensure dependencies & build the frontend
 // ---------------------------------------------------------------------------
+const frontendNodeModules = path.join(frontend, "node_modules");
+const backendNodeModules = path.join(backendSource, "node_modules");
+
+if (!fs.existsSync(frontendNodeModules) || !fs.existsSync(path.join(frontendNodeModules, ".bin", "vite"))) {
+  console.log("==> Installing frontend dependencies...");
+  execSync("npm install", { cwd: frontend, stdio: "inherit" });
+}
+
+if (!fs.existsSync(backendNodeModules)) {
+  console.log("==> Installing backend dependencies...");
+  execSync("npm install", { cwd: backendSource, stdio: "inherit" });
+}
+
 console.log("==> Building frontend...");
 execSync("npm run build", { cwd: frontend, stdio: "inherit" });
 
@@ -49,14 +82,12 @@ if (!fs.existsSync(entry)) {
 // Step 2 – copy backend code and node_modules inside __server.func
 // ---------------------------------------------------------------------------
 console.log("==> Packaging backend into __server.func...");
-const backendSource = path.join(root, "backend");
 const backendDest = path.join(funcDir, "backend");
 
 copyDirSync(backendSource, backendDest, (name) => {
   return name !== "node_modules" && name !== "tests" && !name.endsWith(".log") && !name.endsWith(".err");
 });
 
-const backendNodeModules = path.join(backendSource, "node_modules");
 const funcNodeModules = path.join(funcDir, "node_modules");
 if (fs.existsSync(backendNodeModules)) {
   console.log("==> Packaging backend node_modules into __server.func/node_modules...");

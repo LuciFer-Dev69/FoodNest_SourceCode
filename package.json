@@ -5,6 +5,7 @@
   "description": "FoodNest – Smart Food Sustainability & Donation Platform (frontend + API)",
   "type": "module",
   "scripts": {
+    "postinstall": "npm install --prefix frontend && npm install --prefix backend",
     "build": "node scripts/build.js"
   },
   "dependencies": {
