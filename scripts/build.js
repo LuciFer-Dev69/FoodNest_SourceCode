@@ -1,21 +1,5 @@
 // FoodNest unified build for Vercel.
 //
-// 1. Builds the TanStack Start frontend (`npm run build` in frontend/), which
-//    emits the Nitro Vercel preset output at frontend/.vercel/output/.
-// 2. Patches the generated `__server.func/index.mjs` so that requests to
-//    `/api/*` and `/uploads/*` are handled by the shared Express backend
-//    (backend/) instead of falling through to the SSR renderer.
-
-import { execSync } from "node:child_process";
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const root = path.resolve(__dirname, "..");
-const frontend = path.join(root, "frontend");
-// FoodNest unified build for Vercel.
-//
 // 1. Installs frontend & backend dependencies if not present.
 // 2. Builds the TanStack Start frontend (`npm run build` in frontend/), which
 //    emits the Nitro Vercel preset output at frontend/.vercel/output/.
