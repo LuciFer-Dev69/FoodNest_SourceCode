@@ -26,6 +26,20 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+app.use(async (req, res, next) => {
+  if (req.path === "/api/health") return next();
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error("Database connection error on request:", err.message);
+    return res.status(500).json({
+      message: "Database connection failed. Please verify MONGODB_URI in Vercel environment variables and ensure MongoDB Atlas Network Access allows 0.0.0.0/0.",
+      error: err.message,
+    });
+  }
+});
+
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use("/api/auth", authRoutes);
